@@ -253,7 +253,7 @@ VkResult CreateUiCompositionPipeline(VkDevice device, VkFormat fmt, const VkAllo
         rasterizationStateCreateInfo.depthBiasConstantFactor                = 0.0f;
         rasterizationStateCreateInfo.depthBiasClamp                         = 0.0f;
         rasterizationStateCreateInfo.depthBiasSlopeFactor                   = 0.0f;
-        rasterizationStateCreateInfo.lineWidth                              = 0.0f;
+        rasterizationStateCreateInfo.lineWidth                              = 1.0f;
 
         VkPipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo = {};
         depthStencilStateCreateInfo.sType                                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
