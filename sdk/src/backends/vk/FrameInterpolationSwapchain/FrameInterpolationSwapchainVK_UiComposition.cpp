@@ -253,7 +253,7 @@ VkResult CreateUiCompositionPipeline(VkDevice device, VkFormat fmt, const VkAllo
         rasterizationStateCreateInfo.depthBiasConstantFactor                = 0.0f;
         rasterizationStateCreateInfo.depthBiasClamp                         = 0.0f;
         rasterizationStateCreateInfo.depthBiasSlopeFactor                   = 0.0f;
-        rasterizationStateCreateInfo.lineWidth                              = 0.0f;
+        rasterizationStateCreateInfo.lineWidth                              = 1.0f;
 
         VkPipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo = {};
         depthStencilStateCreateInfo.sType                                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -691,6 +691,23 @@ FFX_API FfxErrorCode ffxFrameInterpolationUiComposition(const FfxPresentCallback
         VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         setBarrier(barriers, barrierCount, backbufferImage,   params->currentBackBuffer.state,     VK_ACCESS_SHADER_READ_BIT,            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, srcStageMask);
         setBarrier(barriers, barrierCount, uiImage,           params->currentUI.state,             VK_ACCESS_SHADER_READ_BIT,            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, srcStageMask);
+
+        VkImageMemoryBarrier& barrier           = barriers[barrierCount++];
+        barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.pNext                           = nullptr;
+        barrier.srcAccessMask                   = 0;
+        barrier.dstAccessMask                   = VK_ACCESS_SHADER_READ_BIT;
+        barrier.oldLayout                       = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.newLayout                       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier.srcQueueFamilyIndex             = 0;
+        barrier.dstQueueFamilyIndex             = 0;
+        barrier.image                           = uiImage;
+        barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel   = 0;
+        barrier.subresourceRange.levelCount     = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount     = 1;
+
         setBarrier(barriers, barrierCount, renderTargetImage, params->outputSwapChainBuffer.state, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, srcStageMask);
 
         if (barrierCount > 0)
