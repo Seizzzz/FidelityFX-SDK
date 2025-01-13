@@ -1069,8 +1069,6 @@ DWORD WINAPI composeAndPresent_presenterThread(LPVOID pParam)
                 PacingData entry = presenter->scheduledPresents;
                 presenter->scheduledPresents.invalidate();
 
-                LeaveCriticalSection(&presenter->scheduledFrameCriticalSection);
-
                 if (entry.numFramesToPresent > 0)
                 {
                     // we might have dropped entries so have to update here, otherwise we might deadlock
@@ -1158,6 +1156,8 @@ DWORD WINAPI composeAndPresent_presenterThread(LPVOID pParam)
 
                     numFramesSentForPresentation = entry.numFramesSentForPresentationBase + entry.numFramesToPresent;
                 }
+
+                LeaveCriticalSection(&presenter->scheduledFrameCriticalSection);
             }
         }
 
@@ -1937,9 +1937,9 @@ void FrameInterpolationSwapChainVK::dispatchInterpolationCommands(uint32_t      
     if (presentInfo.gameQueue.familyIndex != presentInfo.interpolationQueue.familyIndex)
     {
         preInterpolationBarriers.add(currentBackBuffer,
+                                     0,
                                      ReplacementBufferTransferState.accessMask,
-                                     ReplacementBufferTransferState.accessMask,
-                                     ReplacementBufferTransferState.layout,
+                                     VK_IMAGE_LAYOUT_UNDEFINED,
                                      ReplacementBufferTransferState.layout,
                                      presentInfo.gameQueue.familyIndex,
                                      presentInfo.interpolationQueue.familyIndex);
@@ -2031,9 +2031,9 @@ void FrameInterpolationSwapChainVK::dispatchInterpolationCommands(uint32_t      
                 if (!presentInterpolatedOnly)
                 {
                     postInterpolationBarriers.add(currentBackBuffer,
+                                                  0,
                                                   ReplacementBufferTransferState.accessMask,
-                                                  ReplacementBufferTransferState.accessMask,
-                                                  ReplacementBufferTransferState.layout,
+                                                  VK_IMAGE_LAYOUT_UNDEFINED,
                                                   ReplacementBufferTransferState.layout,
                                                   presentInfo.interpolationQueue.familyIndex,
                                                   compositionQueueFamily);
@@ -2388,6 +2388,7 @@ VkResult FrameInterpolationSwapChainVK::presentNonInterpolatedWithUiCompositionO
     }
 
     // FFX doesn't have a undefined state. Transition to Present here. It will come back as Present after the callback
+    presentQueueBarriers.add(srcImage, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); //
     presentQueueBarriers.add(dstImage, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
     auto            uiCompositionList = presentInfo.commandPool.get(presentInfo.device, presentInfo.presentQueue, "uiCompositionList");
@@ -2438,7 +2439,7 @@ VkResult FrameInterpolationSwapChainVK::presentNonInterpolatedWithUiCompositionO
     ImageBarrierHelper gameQueueBarriers;
 
     // FFX doesn't have a undefined state. Transition to Present here. It will come back as Present after the callback
-    gameQueueBarriers.add(srcImage, 0, 0, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    gameQueueBarriers.add(srcImage, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);  //
     gameQueueBarriers.add(dstImage, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
     // transition layout & queue family ownership transfer (if necessary)
@@ -2641,32 +2642,11 @@ VkResult FrameInterpolationSwapChainVK::queuePresent(VkQueue queue, const VkPres
         }
         else
         {
-            //// no image was acquired. Skip present. Just signal the replacement buffer semaphore for it to be used at a later point
-            //gameQueueSignal.add(presentInfo.replacementBufferSemaphore, ++framesSentForPresentation);
-            //presentInfo.gameQueue.submit(VK_NULL_HANDLE, gameQueueWait, gameQueueSignal);
-
             // Reaching here for acquireNextRealImage unsuccessfully, such as out-of-date.
             // However signal still, for not stuck in deadlock
             FFX_ASSERT(res == VK_ERROR_OUT_OF_DATE_KHR);
 
-#if FFX_COMPOSITION_MODE == FFX_COMPOSE_IN_VKQUEUEPRESENT_ACQUIRE_IN_PRESENTTHREAD
-            auto            uiCompositionList          = presentInfo.commandPool.get(presentInfo.device, presentInfo.gameQueue, "uiCompositionList");
-            VkCommandBuffer uiCompositionCommandBuffer = uiCompositionList->reset();
-
-            gameQueueSignal.add(presentInfo.replacementBufferSemaphore, ++framesSentForPresentation);
-
-            FFX_ASSERT(presentInfo.presentQueue.familyIndex == presentInfo.gameQueue.familyIndex);
-            gameQueueSignal.add(presentInfo.frameRenderedSemaphores[imageIndex]);  // not a timeline semaphore
-
-            // cannot signal after present on the present queue, so signal here
-            gameQueueSignal.add(presentInfo.presentSemaphore, framesSentForPresentation);
-            presentInfo.lastPresentSemaphoreValue = framesSentForPresentation;
-
-            VkResult res_signal = uiCompositionList->execute(SubmissionSemaphores(), gameQueueSignal);
-            FFX_ASSERT_MESSAGE_FORMAT(res_signal == VK_SUCCESS, "[presentWithUiComposition2] queue submit failed with error %d", res_signal);
-
-            res = presentToSwapChain(&presentInfo, imageIndex, imageIndex);
-#endif
+            res = presentPassthrough(imageIndex, gameQueueWait, gameQueueSignal, presentQueueWait);
         }
     }
 
