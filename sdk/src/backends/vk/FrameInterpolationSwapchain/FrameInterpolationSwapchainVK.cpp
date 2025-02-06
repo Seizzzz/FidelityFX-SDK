@@ -775,6 +775,26 @@ VkResult presentToSwapChain(FrameinterpolationPresentInfo* pPresenter, uint32_t 
     return res;
 }
 
+VkResult presentToSwapChainNoWait(FrameinterpolationPresentInfo* pPresenter, uint32_t imageIndex, uint32_t semaphoreIndex = 0)
+{
+    VkPresentInfoKHR presentInfoKHR   = {};
+    presentInfoKHR.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfoKHR.pNext              = nullptr;
+    presentInfoKHR.waitSemaphoreCount = 0;
+    presentInfoKHR.pWaitSemaphores    = nullptr;
+    presentInfoKHR.swapchainCount     = 1;
+    presentInfoKHR.pSwapchains        = &pPresenter->realSwapchain;
+    presentInfoKHR.pImageIndices      = &imageIndex;
+    presentInfoKHR.pResults           = nullptr;  // Optional
+
+    EnterCriticalSection(&pPresenter->swapchainCriticalSection);
+    VkResult res = vkQueuePresentKHR(pPresenter->presentQueue.queue, &presentInfoKHR);
+    LeaveCriticalSection(&pPresenter->swapchainCriticalSection);
+
+    ++(pPresenter->realPresentCount);
+    return res;
+}
+
 VkResult compositeSwapChainFrame(FrameinterpolationPresentInfo* pPresenter,
                                  const PacingData*              pPacingEntry,
                                  const PacingData::FrameType    frameType,
@@ -1090,7 +1110,7 @@ DWORD WINAPI composeAndPresent_presenterThread(LPVOID pParam)
                         if (frameInfo.doPresent)
                         {
                             SubmissionSemaphores toSignal;
-                            toSignal.add(presenter->frameRenderedSemaphores[0]);  // not a timeline semaphore
+                            //toSignal.add(presenter->frameRenderedSemaphores[0]);  // not a timeline semaphore
 
                             // signal replacement buffer availability
                             // this is the last present of this entry
@@ -1129,8 +1149,9 @@ DWORD WINAPI composeAndPresent_presenterThread(LPVOID pParam)
 
                                 waitForPerformanceCount(previousPresentQpc + frameInfo.presentQpcDelta);
                                 QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&previousPresentQpc));
-
-                                res = presentToSwapChain(presenter, realSwapchainImageIndex);
+                                
+                                res = vkQueueWaitIdle(presenter->presentQueue.queue);
+                                res = presentToSwapChainNoWait(presenter, realSwapchainImageIndex);
                                 // VK_SUBOPTIMAL_KHR & VK_ERROR_OUT_OF_DATE_KHR: the swapchain has been recreated
                                 FFX_ASSERT_MESSAGE_FORMAT(res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR,
                                                           "presentToSwapChain failed with error %d",
