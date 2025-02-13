@@ -1576,9 +1576,10 @@ VkResult FrameInterpolationSwapChainVK::init(const VkSwapchainCreateInfoKHR* pCr
     InitializeCriticalSection(&presentInfo.scheduledFrameCriticalSection);
     InitializeCriticalSection(&presentInfo.swapchainCriticalSection);
 
-    presentInfo.presentEvent       = CreateEvent(NULL, FALSE, FALSE, TEXT("PresentEvent"));
-    presentInfo.interpolationEvent = CreateEvent(NULL, FALSE, TRUE, TEXT("InterpolationEvent"));
-    presentInfo.pacerEvent         = CreateEvent(NULL, FALSE, FALSE, TEXT("PacerEvent"));
+    std::wstring processId = std::to_wstring(GetCurrentProcessId());
+    presentInfo.presentEvent       = CreateEvent(NULL, FALSE, FALSE, (L"PresentEvent" + processId).c_str());
+    presentInfo.interpolationEvent = CreateEvent(NULL, FALSE, TRUE, (L"InterpolationEvent" + processId).c_str());
+    presentInfo.pacerEvent         = CreateEvent(NULL, FALSE, FALSE, (L"PacerEvent" + processId).c_str());
 
     // create the real swapchain
     SwapchainCreationInfo realSwapchainCreateInfo;
