@@ -32,7 +32,8 @@ layout(location = 0) out vec4 outColor;
 void main()
 {
     vec3 color = texelFetch(r_currBB, ivec2(gl_FragCoord.xy), 0).rgb;
-    vec4 guiColor = texelFetch(r_uiTexture, ivec2(gl_FragCoord.xy), 0);
+    ivec2 flippedCoord = ivec2(gl_FragCoord.x, gl_FragCoord.y * -1 + textureSize(r_uiTexture, 0).y);
+    vec4 guiColor = texelFetch(r_uiTexture, flippedCoord, 0);
 
 #if FFX_UI_PREMUL
     outColor = vec4((1.0 - guiColor.a) * color + guiColor.rgb, 1.0); // premul
