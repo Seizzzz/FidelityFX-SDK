@@ -686,6 +686,18 @@ FfxErrorCode ffxGetFrameinterpolationCommandlistVK(FfxSwapchain gameSwapChain, F
     return FFX_OK;
 }
 
+FfxErrorCode ffxGetSwapChainCriticalSectionVK(FfxSwapchain swapChain, void** pCriticalSection)
+{
+    if (swapChain)
+    {
+        FrameInterpolationSwapChainVK* pSwapChainVK = reinterpret_cast<FrameInterpolationSwapChainVK*>(swapChain);
+        *pCriticalSection                            = pSwapChainVK->getSwapChainCriticalSection();
+
+        return FFX_OK;
+    }
+    return FFX_ERROR_INVALID_POINTER;
+}
+
 FfxErrorCode ffxReplaceSwapchainForFrameinterpolationVK(FfxCommandQueue                    gameQueue,
                                                         FfxSwapchain&                      gameSwapChain,
                                                         const VkSwapchainCreateInfoKHR*    swapchainCreateInfo,
@@ -2742,6 +2754,11 @@ void FrameInterpolationSwapChainVK::setHdrMetadata(VkDevice device, const VkHdrM
 uint64_t FrameInterpolationSwapChainVK::getLastPresentCount()
 {
     return presentInfo.realPresentCount;
+}
+
+CRITICAL_SECTION* FrameInterpolationSwapChainVK::getSwapChainCriticalSection()
+{
+    return &presentInfo.swapchainCriticalSection;
 }
 
 VkCommandBuffer FrameInterpolationSwapChainVK::getInterpolationCommandList()

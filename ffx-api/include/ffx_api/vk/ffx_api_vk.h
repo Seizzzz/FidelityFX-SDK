@@ -113,6 +113,14 @@ struct ffxQueryFrameGenerationSwapChainGetGPUMemoryUsageVK
     struct FfxApiEffectMemoryUsage* gpuMemoryUsageFrameGenerationSwapchain;
 };
 
+#define FFX_API_QUERY_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_SWAPCHAIN_CRITICAL_SECTION_VK 0x0004000au
+struct ffxQueryFrameGenerationSwapChainGetSwapchainCriticalSectionVK
+{
+    ffxQueryDescHeader              header;
+    void*                           swapChain;
+    void*                           criticalSection;
+};
+
 /// Function to get the number of presents. This is useful when using frame interpolation
 typedef uint64_t (*PFN_getLastPresentCountFFXAPI)(VkSwapchainKHR);
 

@@ -249,6 +249,14 @@ ffxReturnCode_t ffxProvider_FrameGenerationSwapChain_VK::Query(ffxContext* conte
 
         return FFX_API_RETURN_OK;
     }
+    else if (auto desc = ffx::DynamicCast<ffxQueryFrameGenerationSwapChainGetSwapchainCriticalSectionVK>(header))
+    {
+        void* outCriticalSection{};
+        TRY2(ffxGetSwapChainCriticalSectionVK(desc->swapChain, &outCriticalSection));
+        desc->criticalSection = outCriticalSection;
+
+        return FFX_API_RETURN_OK;
+    }
     else
     {
         return FFX_API_RETURN_ERROR_PARAMETER;

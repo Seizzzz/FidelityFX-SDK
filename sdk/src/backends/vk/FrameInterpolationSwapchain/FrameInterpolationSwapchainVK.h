@@ -242,6 +242,8 @@ public:  // vulkan functions reimplementation
 
     uint64_t getLastPresentCount();
 
+    CRITICAL_SECTION* getSwapChainCriticalSection();
+
 public:
     void            setFrameGenerationConfig(FfxFrameGenerationConfig const* config);
     void            setFramePacingTuning(const FfxSwapchainFramePacingTuning* framePacingTuning);

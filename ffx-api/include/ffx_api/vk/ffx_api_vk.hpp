@@ -80,4 +80,9 @@ struct struct_type<ffxQueryFrameGenerationSwapChainGetGPUMemoryUsageVK> : std::i
 
 struct QueryFrameGenerationSwapChainGetGPUMemoryUsageVK : public InitHelper<ffxQueryFrameGenerationSwapChainGetGPUMemoryUsageVK> {};
 
+template<>
+struct struct_type<ffxQueryFrameGenerationSwapChainGetSwapchainCriticalSectionVK> : std::integral_constant<uint64_t, FFX_API_QUERY_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_SWAPCHAIN_CRITICAL_SECTION_VK> {};
+
+struct QueryFrameGenerationSwapChainGetSwapchainCriticalSectionVK : public InitHelper<ffxQueryFrameGenerationSwapChainGetSwapchainCriticalSectionVK> {};
+
 }

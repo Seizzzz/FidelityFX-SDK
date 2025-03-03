@@ -309,6 +309,8 @@ FFX_API FfxResource ffxGetFrameinterpolationTextureVK(FfxSwapchain gameSwapChain
 /// @ingroup VKFrameInterpolation
 FFX_API FfxErrorCode ffxSetFrameGenerationConfigToSwapchainVK(FfxFrameGenerationConfig const* config);
 
+FFX_API FfxErrorCode ffxGetSwapChainCriticalSectionVK(FfxSwapchain swapChain, void** pCriticalSection);
+
 //enum values should match enum FfxApiConfigureFrameGenerationSwapChainKeyVK
 typedef enum FfxFrameInterpolationSwapchainConfigureKey
 {
