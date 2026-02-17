@@ -6,7 +6,7 @@
 
 This sample demonstrates the use of FSR™ Upscaling 4.0.3 (and 3.1.5 & 2.3.4) for upscaling and FSR™ Frame Generation 4.0.0 (and 3.1.6).
 
-For details on the underlying algorithms you can refer to the per-technique documentation for [FSR™ Super Resolution 4](../techniques/super-resolution-ml.md) and [FSR™ Frame Generation 4](../techniques/frame-interpolation-ml.md).
+For details on the underlying algorithms you can refer to the per-technique documentation for [FSR™ Super Resolution 4](../../Kits/FidelityFX/docs/techniques/super-resolution-ml.md) and [FSR™ Frame Generation 4](../../Kits/FidelityFX/docs/techniques/frame-interpolation-ml.md).
 
 <h2>Requirements</h2>
 
@@ -76,7 +76,7 @@ If reset indicators are enabled, a red bar will appear at the top of the screen 
 
 <h2>Setting up FSR™ Upscaling</h2>
 
-The sample contains a [dedicated Render Module for FSR](../../samples/upscalers/fidelityfx_fsr/dx12/fsrapirendermodule.h) which creates the contexts and controls their lifetime. See the FSR™ Upscaling Overview and Integration document for more information.
+The sample contains a [dedicated Render Module for FSR](../../Samples/Upscalers/FidelityFX_FSR/dx12/fsrapirendermodule.h) which creates the contexts and controls their lifetime. See the FSR™ Upscaling Overview and Integration document for more information.
 
 <h2>Sample controls and configurations</h2>
 
@@ -84,5 +84,5 @@ For sample controls, configuration, and Cauldron Framework UI element details, s
 
 <h2>See also</h2>
 
-- [FSR™ Upscaling 4](../techniques/super-resolution-ml.md)
-- [FSR™ Frame Generation 4](../techniques/frame-interpolation-ml.md)
+- [FSR™ Upscaling 4](../../Kits/FidelityFX/docs/techniques/super-resolution-ml.md)
+- [FSR™ Frame Generation 4](../../Kits/FidelityFX/docs/techniques/frame-interpolation-ml.md)

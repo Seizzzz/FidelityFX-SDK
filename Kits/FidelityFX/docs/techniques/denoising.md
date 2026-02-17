@@ -660,5 +660,5 @@ For more details, refer to the changelog.
 ## See also
 
 - [FSR™ API](../getting-started/ffx-api.md)
-- [FSR™ Upscaling](../samples/super-resolution.md)
+- [FSR™ Upscaling](../../../../docs/samples/super-resolution.md)
 - [FSR™ Naming guidelines](../getting-started/naming-guidelines.md)

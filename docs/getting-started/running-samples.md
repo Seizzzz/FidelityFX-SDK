@@ -117,7 +117,7 @@ The following is a list of configuration groups and options that can be overload
 
   Render resources is a list of resources to be created, or resource aliases to be created at framework initialization time. They are typically defined by render modules that have implicit resource needs.  They are defined by providing the resource name as an object which contains a Format, and other optional flags (e.g. `"RenderResolution": true` will create the resource at render resolution instead of display resolution if upscaling is present).
   
-  Resource aliases add additional names that can be used to query resources from the [`DynamicResourcePool`](../../framework/cauldron/framework/src/render/dynamicresourcepool.cpp) at run time.
+  Resource aliases add additional names that can be used to query resources from the [`DynamicResourcePool`](../../Kits/Cauldron2/dx12/framework/render/dynamicresourcepool.cpp) at run time.
   
   Example:
 
@@ -146,7 +146,7 @@ The following is a list of configuration groups and options that can be overload
   
   **RenderModuleOverrides**
   
-  Used to override data for render module initialization. Define an entry for each render module you wish to override. Example: Overiding [`SkyDomeRenderModule`](../../framework/rendermodules/skydome/skydomerendermodule.h)'s procedural generation setting:
+  Used to override data for render module initialization. Define an entry for each render module you wish to override. Example: Overiding [`SkyDomeRenderModule`](../../Kits/Cauldron2/dx12/rendermodules/skydome/skydomerendermodule.h)'s procedural generation setting:
   
   ```yaml
   "RenderModuleOverrides": {

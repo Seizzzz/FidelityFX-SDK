@@ -25,7 +25,7 @@ If you are a registered Xbox developer, you can find AMD FSR™ features availab
 
 <h2>Samples</h2>
 
-Most samples are written in C++, and use the [Cauldron Framework](../../Kits/Cauldron2/dx12/) sample framework.
+Most samples are written in C++, and use the [Cauldron Framework](../../../Cauldron2/dx12/) sample framework.
 
 <h2>Open source</h2>
 

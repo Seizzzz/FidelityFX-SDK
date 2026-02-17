@@ -150,7 +150,7 @@ CauldronAssert(ASSERT_CRITICAL, !!retCode, L"Configuring FSR FG failed: %d", (ui
 
 If using the frame generation callback, the swapchain will call the callback with appropriate parameters.
 Otherwise, the application is responsible for calling the frame generation dispatch and setting parameters itself.
-In that case, the frame ID must be equal to the frame ID used in configuration. The command list and output texture can be queried from the frame generation context using [`ffxQuery`](../../api/include/ffx_api.h#L150). See the [sample code](../../Samples/Upscalers/FidelityFX_FSR/dx12/fsrapirendermodule.cpp#L1172) for an example.
+In that case, the frame ID must be equal to the frame ID used in configuration. The command list and output texture can be queried from the frame generation context using [`ffxQuery`](../../api/include/ffx_api.h#L150). See the [sample code](../../../../Samples/Upscalers/FidelityFX_FSR/dx12/fsrapirendermodule.cpp#L1172) for an example.
 
 The user context pointers will only be passed into the respective callback functions. FSR™ code will not attempt to dereference them.
 
