@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -131,7 +131,6 @@ public:
         {
             int32_t oldPreset = static_cast<int32_t>(m_ScalePreset);
             m_ScalePreset = static_cast<FSRScalePreset>(preset);
-            m_IsNonNative = (preset != 0);
             UpdatePreset(&oldPreset);
         }
     }
@@ -334,9 +333,6 @@ private:
     const cauldron::Texture* m_pUiTexture[2]      = {};
     const cauldron::Texture* m_pHudLessTexture[2] = {};
     const cauldron::Texture* m_pDistortionField[2] = {};
-
-    //surface interpolation output for DXGI swapchain
-    const cauldron::Texture* m_pInterpolationOutput = nullptr;
 
     TAARenderModule*          m_pTAARenderModule         = nullptr;
     ToneMappingRenderModule*  m_pToneMappingRenderModule = nullptr;

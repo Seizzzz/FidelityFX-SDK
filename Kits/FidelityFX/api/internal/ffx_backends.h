@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -36,3 +36,5 @@ inline ffxReturnCode_t MustCreateBackend(const ffxCreateContextDescHeader* desc,
 }
 
 void* GetDevice(const ffxApiHeader* desc);
+
+FfxErrorCode GetResourceSizeFromDescription(FfxDevice device, const FfxCreateResourceDescription* createResourceDescription, uint64_t* sizeInBytes, uint64_t* alignment = nullptr);

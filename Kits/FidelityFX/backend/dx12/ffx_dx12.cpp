@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -51,7 +51,7 @@
 #pragma clang diagnostic ignored "-Wpointer-bool-conversion"
 #endif
 
-enum AGSReturnCode;
+enum AGSReturnCode : int;
 struct AGSContext;
 
 static bool s_AgsDllLoaded = false;
@@ -114,6 +114,7 @@ FfxErrorCode ScheduleGpuJobDX12(FfxInterface* backendInterface, const FfxGpuJobD
 FfxErrorCode ExecuteGpuJobsDX12(FfxInterface* backendInterface, FfxCommandList commandList, FfxUInt32 effectContextId);
 FfxErrorCode CreateHeapDX12(FfxInterface* backendInterface, const FfxCreateHeapDescription* createHeapDescription, FfxUInt32 effectContextId, FfxResourceHeap* outHeap);
 FfxErrorCode DestroyHeapDX12(FfxInterface* backendInterface, FfxResourceHeap heap, FfxUInt32 effectContextId);
+FfxErrorCode QueryNextGpuJobDescDX12(FfxInterface* backendInterface, FfxGpuJobDescription** outJobPtr);
 
 #define FFX_MAX_RESOURCE_IDENTIFIER_COUNT   (128)
 #define FFX_MAX_STATIC_DESCRIPTOR_COUNT   (65536)
@@ -130,9 +131,6 @@ typedef struct BackendContext_DX12 {
     // store for resources and resourceViews
     typedef struct Resource
     {
-#ifdef _DEBUG
-        wchar_t                 resourceName[64] = {};
-#endif
         ID3D12Resource*         resourcePtr;
         FfxApiResourceDescription  resourceDescription;
         FfxApiResourceState       initialState;
@@ -247,7 +245,7 @@ static uint32_t getFreeBindlessDescriptorBlock(BackendContext_DX12 *context, uin
     return base;
 }
 
-FFX_API size_t ffxGetScratchMemorySizeDX12(size_t maxContexts)
+size_t ffxGetScratchMemorySizeDX12(size_t maxContexts)
 {
     uint32_t resourceArraySize          = FFX_ALIGN_UP(maxContexts * FFX_MAX_RESOURCE_COUNT * sizeof(BackendContext_DX12::Resource), sizeof(uint64_t));
     uint32_t contextArraySize           = FFX_ALIGN_UP(maxContexts * sizeof(BackendContext_DX12::EffectContext), sizeof(uint32_t));
@@ -302,6 +300,8 @@ FfxErrorCode ffxGetInterfaceDX12(
     backendInterface->fpDestroyPipeline = DestroyPipelineDX12;
     backendInterface->fpScheduleGpuJob = ScheduleGpuJobDX12;
     backendInterface->fpExecuteGpuJobs = ExecuteGpuJobsDX12;
+
+    backendInterface->fpQueryNextGpuJobDesc = QueryNextGpuJobDescDX12;
 
 #if defined(FFX_FRAMEGENERATION)
     backendInterface->fpSwapChainConfigureFrameGeneration = ffxSetFrameGenerationConfigToSwapchainDX12;
@@ -359,7 +359,7 @@ FfxApiResource ffxGetResourceDX12(const ID3D12Resource* dx12Resource,
     resource.state = state;
     resource.description = ffxResDescription;
 
-    (void)ffxResName;
+    FFX_UNUSED(ffxResName);
 
     return resource;
 }
@@ -656,6 +656,8 @@ DXGI_FORMAT ffxGetDX12FormatFromSurfaceFormat(FfxApiSurfaceFormat surfaceFormat)
             return DXGI_FORMAT_R32G32_FLOAT;
         case (FFX_API_SURFACE_FORMAT_R32G32_UINT):
             return DXGI_FORMAT_R32G32_UINT;
+        case (FFX_API_SURFACE_FORMAT_R32_TYPELESS):
+            return DXGI_FORMAT_R32_TYPELESS;
         case (FFX_API_SURFACE_FORMAT_R32_UINT):
             return DXGI_FORMAT_R32_UINT;
         case(FFX_API_SURFACE_FORMAT_R10G10B10A2_TYPELESS):
@@ -710,8 +712,6 @@ DXGI_FORMAT ffxGetDX12FormatFromSurfaceFormat(FfxApiSurfaceFormat surfaceFormat)
             return DXGI_FORMAT_R8G8_TYPELESS;
         case (FFX_API_SURFACE_FORMAT_R8G8_UNORM):
             return DXGI_FORMAT_R8G8_UNORM;
-        case (FFX_API_SURFACE_FORMAT_R32_TYPELESS):
-            return DXGI_FORMAT_R32_TYPELESS;
         case (FFX_API_SURFACE_FORMAT_R32_FLOAT):
             return DXGI_FORMAT_R32_FLOAT;
         case (FFX_API_SURFACE_FORMAT_R9G9B9E5_SHAREDEXP):
@@ -1218,14 +1218,18 @@ FfxErrorCode GetEffectGpuMemoryUsageDX12(FfxInterface* backendInterface, FfxUInt
     return FFX_OK;
 }
 
-FfxErrorCode ffxGetResourceSizeFromDescriptionDX12(FfxDevice device, const FfxCreateResourceDescription* createResourceDescription, uint64_t* sizeInBytes)
+FfxErrorCode ffxGetResourceSizeFromDescriptionDX12(FfxDevice device, const FfxCreateResourceDescription* createResourceDescription, uint64_t* sizeInBytes, uint64_t* alignment)
 {
     FFX_ASSERT(NULL != device);
     FFX_ASSERT(NULL != createResourceDescription);
     FFX_ASSERT(NULL != sizeInBytes);
 
-    if (createResourceDescription->heapInfo.heapType == FFX_HEAP_TYPE_UPLOAD)
+    if (createResourceDescription->heapInfo.heapType == FFX_HEAP_TYPE_UPLOAD) 
     {
+        if (alignment) 
+        {
+            *alignment = 1u;
+        }
         *sizeInBytes = 0u;
         return FFX_OK;
     }
@@ -1277,19 +1281,25 @@ FfxErrorCode ffxGetResourceSizeFromDescriptionDX12(FfxDevice device, const FfxCr
     default:
         break;
     }
+
     ID3D12Device* pDevice = nullptr;
-    if (SUCCEEDED(((ID3D12Device*) device)->QueryInterface(IID_PPV_ARGS(&pDevice))))
+    if (SUCCEEDED(reinterpret_cast< IUnknown* >(device)->QueryInterface(IID_PPV_ARGS(&pDevice))))
     {
         const D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pDevice->GetResourceAllocationInfo(0, 1, &dx12ResourceDescription);
         pDevice->Release();
         *sizeInBytes = allocInfo.SizeInBytes;
+        if (alignment)
+        {
+            *alignment = allocInfo.Alignment > 0 ? allocInfo.Alignment : 1u;
+        }
+
         if (allocInfo.SizeInBytes != UINT64_MAX)
         {
             return FFX_OK;
         }
     }
+
     return FFX_ERROR_INVALID_ARGUMENT;
-    
 }
 
 // initialize the DX12 backend
@@ -1775,12 +1785,16 @@ FfxErrorCode CreateResourceDX12(
         }
 
         dx12Resource->Unmap(0, nullptr);
-        dx12Resource->SetName(createResourceDescription->name);
+        if (createResourceDescription->name != nullptr)
+        {
+            dx12Resource->SetName(createResourceDescription->name);
+        }
+        else
+        {
+            dx12Resource->SetName(L"FFX Backend Resource");
+        }
         backendResource->resourcePtr = dx12Resource;
 
-#ifdef _DEBUG
-        wcscpy_s(backendResource->resourceName, createResourceDescription->name);
-#endif
         return FFX_OK;
 
     }
@@ -1821,12 +1835,15 @@ FfxErrorCode CreateResourceDX12(
         backendResource->initialState = resourceStates;
         backendResource->currentState = resourceStates;
 
-        dx12Resource->SetName(createResourceDescription->name);
+        if (createResourceDescription->name != nullptr)
+        {
+            dx12Resource->SetName(createResourceDescription->name);
+        }
+        else
+        {
+            dx12Resource->SetName(L"FFX Backend Resource");
+        }
         backendResource->resourcePtr = dx12Resource;
-
-#ifdef _DEBUG
-        wcscpy_s(backendResource->resourceName, createResourceDescription->name);
-#endif
 
         // Create SRVs and UAVs
         {
@@ -2012,15 +2029,17 @@ FfxErrorCode CreateResourceDX12(
 
             backendInterface->fpCreateResource(backendInterface, &uploadDescription, effectContextId, &copySrc);
 
-            // setup the upload job
-            FfxGpuJobDescription copyJob  = { FFX_GPU_JOB_COPY, L"Resource Initialization Copy" };
-            copyJob.copyJobDescriptor.src = copySrc;
-            copyJob.copyJobDescriptor.dst = *outTexture;
-            copyJob.copyJobDescriptor.srcOffset = 0;
-            copyJob.copyJobDescriptor.dstOffset = 0;
-            copyJob.copyJobDescriptor.size      = 0;
+            FfxGpuJobDescription* copyJob = nullptr;
+            backendInterface->fpQueryNextGpuJobDesc(backendInterface, &copyJob);
+            copyJob->jobType = FFX_GPU_JOB_COPY;   
+            wcscpy_s(copyJob->jobLabel, L"Resource Initialization Copy");
 
-            backendInterface->fpScheduleGpuJob(backendInterface, &copyJob);
+            // setup the upload job
+            copyJob->copyJobDescriptor.src = copySrc;
+            copyJob->copyJobDescriptor.dst = *outTexture;
+            copyJob->copyJobDescriptor.srcOffset = 0;
+            copyJob->copyJobDescriptor.dstOffset = 0;
+            copyJob->copyJobDescriptor.size      = 0;
         }
     }
 
@@ -3483,6 +3502,20 @@ FfxErrorCode ScheduleGpuJobDX12(
     return FFX_OK;
 }
 
+FfxErrorCode QueryNextGpuJobDescDX12(FfxInterface* backendInterface, FfxGpuJobDescription** outJobPtr)
+{
+    FFX_ASSERT(NULL != backendInterface);
+
+    BackendContext_DX12* backendContext = (BackendContext_DX12*) backendInterface->scratchBuffer;
+
+    FFX_ASSERT(backendContext->gpuJobCount < FFX_MAX_GPU_JOBS);
+
+    *outJobPtr = &(backendContext->pGpuJobs[backendContext->gpuJobCount]);
+    backendContext->gpuJobCount++;
+
+    return FFX_OK;
+}
+
 static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendContext,
                                          FfxGpuJobDescription*      job,
                                          ID3D12GraphicsCommandList* dx12CommandList,
@@ -3494,7 +3527,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
     ID3D12DescriptorHeap* dx12DescriptorHeap = reinterpret_cast<ID3D12DescriptorHeap*>(backendContext->descRingBuffer);
 
     // set root signature
-    ID3D12RootSignature* dx12RootSignature = reinterpret_cast<ID3D12RootSignature*>(job->computeJobDescriptor.pipeline.rootSignature);
+    ID3D12RootSignature* dx12RootSignature = reinterpret_cast<ID3D12RootSignature*>(job->computeJobDescriptor.pipeline->rootSignature);
     dx12CommandList->SetComputeRootSignature(dx12RootSignature);
 
     // set descriptor heap
@@ -3505,21 +3538,21 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
     // bind texture & buffer UAVs (note the binding order here MUST match the root signature mapping order from CreatePipeline!)
     {
         // Set a baseline minimal value
-        uint32_t maximumUavIndex = job->computeJobDescriptor.pipeline.uavTextureCount + job->computeJobDescriptor.pipeline.uavBufferCount;
+        uint32_t maximumUavIndex = job->computeJobDescriptor.pipeline->uavTextureCount + job->computeJobDescriptor.pipeline->uavBufferCount;
 
-        for (uint32_t uavTextureBinding = 0; uavTextureBinding < job->computeJobDescriptor.pipeline.uavTextureCount; uavTextureBinding++)
+        for (uint32_t uavTextureBinding = 0; uavTextureBinding < job->computeJobDescriptor.pipeline->uavTextureCount; uavTextureBinding++)
         {
-            uint32_t slotIndex = job->computeJobDescriptor.pipeline.uavTextureBindings[uavTextureBinding].slotIndex +
-                                 job->computeJobDescriptor.pipeline.uavTextureBindings[uavTextureBinding].arrayIndex;
+            uint32_t slotIndex = job->computeJobDescriptor.pipeline->uavTextureBindings[uavTextureBinding].slotIndex +
+                                 job->computeJobDescriptor.pipeline->uavTextureBindings[uavTextureBinding].arrayIndex;
 
             if (slotIndex > maximumUavIndex)
                 maximumUavIndex = slotIndex;
         }
 
-        for (uint32_t uavBufferBinding = 0; uavBufferBinding < job->computeJobDescriptor.pipeline.uavBufferCount; uavBufferBinding++)
+        for (uint32_t uavBufferBinding = 0; uavBufferBinding < job->computeJobDescriptor.pipeline->uavBufferCount; uavBufferBinding++)
         {
-            uint32_t slotIndex = job->computeJobDescriptor.pipeline.uavBufferBindings[uavBufferBinding].slotIndex +
-                                 job->computeJobDescriptor.pipeline.uavTextureBindings[uavBufferBinding].arrayIndex;
+            uint32_t slotIndex = job->computeJobDescriptor.pipeline->uavBufferBindings[uavBufferBinding].slotIndex +
+                                 job->computeJobDescriptor.pipeline->uavTextureBindings[uavBufferBinding].arrayIndex;
 
             if (slotIndex > maximumUavIndex)
                 maximumUavIndex = slotIndex;
@@ -3535,14 +3568,14 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
             gpuView.ptr += backendContext->descRingBufferBase * dx12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
             // Set Texture UAVs
-            for (uint32_t currentPipelineUavIndex = 0; currentPipelineUavIndex < job->computeJobDescriptor.pipeline.uavTextureCount; ++currentPipelineUavIndex) {
+            for (uint32_t currentPipelineUavIndex = 0; currentPipelineUavIndex < job->computeJobDescriptor.pipeline->uavTextureCount; ++currentPipelineUavIndex) {
 
                 if((job->computeJobDescriptor.flags & FFX_GPU_JOB_FLAGS_SKIP_BARRIERS) == 0)
                 {
                     addBarrier(backendContext, FFX_BARRIER_TYPE_TRANSITION, &job->computeJobDescriptor.uavTextures[currentPipelineUavIndex].resource, FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
                 }
 
-                const FfxResourceBinding binding = job->computeJobDescriptor.pipeline.uavTextureBindings[currentPipelineUavIndex];
+                const FfxResourceBinding& binding = job->computeJobDescriptor.pipeline->uavTextureBindings[currentPipelineUavIndex];
 
                 // source: UAV of resource to bind
                 const uint32_t resourceIndex = job->computeJobDescriptor.uavTextures[currentPipelineUavIndex].resource.internalIndex;
@@ -3563,7 +3596,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
             }
 
             // Set Buffer UAVs
-            for (uint32_t currentPipelineUavIndex = 0; currentPipelineUavIndex < job->computeJobDescriptor.pipeline.uavBufferCount; ++currentPipelineUavIndex) {
+            for (uint32_t currentPipelineUavIndex = 0; currentPipelineUavIndex < job->computeJobDescriptor.pipeline->uavBufferCount; ++currentPipelineUavIndex) {
                 
                 // continue if this is a null resource.
                 if (job->computeJobDescriptor.uavBuffers[currentPipelineUavIndex].resource.internalIndex == 0)
@@ -3574,7 +3607,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
                     addBarrier(backendContext, FFX_BARRIER_TYPE_TRANSITION, &job->computeJobDescriptor.uavBuffers[currentPipelineUavIndex].resource, FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
                 }
 
-                const FfxResourceBinding binding = job->computeJobDescriptor.pipeline.uavBufferBindings[currentPipelineUavIndex];
+                const FfxResourceBinding& binding = job->computeJobDescriptor.pipeline->uavBufferBindings[currentPipelineUavIndex];
 
                 // where to bind it
                 const uint32_t currentUavResourceIndex = binding.slotIndex + binding.arrayIndex;
@@ -3627,21 +3660,21 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
     // bind texture & buffer SRVs
     {
         // Set a baseline minimal value
-        uint32_t maximumSrvIndex = job->computeJobDescriptor.pipeline.srvTextureCount + job->computeJobDescriptor.pipeline.srvBufferCount;
+        uint32_t maximumSrvIndex = job->computeJobDescriptor.pipeline->srvTextureCount + job->computeJobDescriptor.pipeline->srvBufferCount;
 
-        for (uint32_t srvTextureBinding = 0; srvTextureBinding < job->computeJobDescriptor.pipeline.srvTextureCount; srvTextureBinding++)
+        for (uint32_t srvTextureBinding = 0; srvTextureBinding < job->computeJobDescriptor.pipeline->srvTextureCount; srvTextureBinding++)
         {
-            uint32_t slotIndex = job->computeJobDescriptor.pipeline.srvTextureBindings[srvTextureBinding].slotIndex +
-                                 job->computeJobDescriptor.pipeline.srvTextureBindings[srvTextureBinding].arrayIndex;
+            uint32_t slotIndex = job->computeJobDescriptor.pipeline->srvTextureBindings[srvTextureBinding].slotIndex +
+                                 job->computeJobDescriptor.pipeline->srvTextureBindings[srvTextureBinding].arrayIndex;
 
             if (slotIndex > maximumSrvIndex)
                 maximumSrvIndex = slotIndex;
         }
 
-        for (uint32_t srvBufferBinding = 0; srvBufferBinding < job->computeJobDescriptor.pipeline.srvBufferCount; srvBufferBinding++)
+        for (uint32_t srvBufferBinding = 0; srvBufferBinding < job->computeJobDescriptor.pipeline->srvBufferCount; srvBufferBinding++)
         {
-            uint32_t slotIndex = job->computeJobDescriptor.pipeline.srvBufferBindings[srvBufferBinding].slotIndex +
-                                 job->computeJobDescriptor.pipeline.srvTextureBindings[srvBufferBinding].arrayIndex;
+            uint32_t slotIndex = job->computeJobDescriptor.pipeline->srvBufferBindings[srvBufferBinding].slotIndex +
+                                 job->computeJobDescriptor.pipeline->srvTextureBindings[srvBufferBinding].arrayIndex;
 
             if (slotIndex > maximumSrvIndex)
                 maximumSrvIndex = slotIndex;
@@ -3658,7 +3691,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
             D3D12_GPU_DESCRIPTOR_HANDLE gpuView = dx12DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
             gpuView.ptr += backendContext->descRingBufferBase * dx12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-            for (uint32_t currentPipelineSrvIndex = 0; currentPipelineSrvIndex < job->computeJobDescriptor.pipeline.srvTextureCount; ++currentPipelineSrvIndex)
+            for (uint32_t currentPipelineSrvIndex = 0; currentPipelineSrvIndex < job->computeJobDescriptor.pipeline->srvTextureCount; ++currentPipelineSrvIndex)
             {
                 if (job->computeJobDescriptor.srvTextures[currentPipelineSrvIndex].resource.internalIndex == 0)
                     break;
@@ -3668,7 +3701,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
                     addBarrier(backendContext, FFX_BARRIER_TYPE_TRANSITION, &job->computeJobDescriptor.srvTextures[currentPipelineSrvIndex].resource, FFX_API_RESOURCE_STATE_COMPUTE_READ);
                 }
 
-                const FfxResourceBinding binding = job->computeJobDescriptor.pipeline.srvTextureBindings[currentPipelineSrvIndex];
+                const FfxResourceBinding& binding = job->computeJobDescriptor.pipeline->srvTextureBindings[currentPipelineSrvIndex];
 
                 // source: SRV of resource to bind
                 const uint32_t              resourceIndex = job->computeJobDescriptor.srvTextures[currentPipelineSrvIndex].resource.internalIndex;
@@ -3686,7 +3719,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
             }
 
             // Set Buffer SRVs
-            for (uint32_t currentPipelineSrvIndex = 0; currentPipelineSrvIndex < job->computeJobDescriptor.pipeline.srvBufferCount; ++currentPipelineSrvIndex)
+            for (uint32_t currentPipelineSrvIndex = 0; currentPipelineSrvIndex < job->computeJobDescriptor.pipeline->srvBufferCount; ++currentPipelineSrvIndex)
             {
                 // continue if this is a null resource.
                 if (job->computeJobDescriptor.srvBuffers[currentPipelineSrvIndex].resource.internalIndex == 0)
@@ -3697,7 +3730,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
                     addBarrier(backendContext, FFX_BARRIER_TYPE_TRANSITION, &job->computeJobDescriptor.srvBuffers[currentPipelineSrvIndex].resource, FFX_API_RESOURCE_STATE_COMPUTE_READ);
                 }
 
-                const FfxResourceBinding binding = job->computeJobDescriptor.pipeline.srvBufferBindings[currentPipelineSrvIndex];
+                const FfxResourceBinding& binding = job->computeJobDescriptor.pipeline->srvBufferBindings[currentPipelineSrvIndex];
 
                 // where to bind it
                 const uint32_t currentSrvResourceIndex = binding.slotIndex + binding.arrayIndex;
@@ -3748,7 +3781,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
     BackendContext_DX12::EffectContext& effectContext = backendContext->pEffectContexts[effectContextId];
 
     // bind static texture srv table
-    if (job->computeJobDescriptor.pipeline.staticTextureSrvCount > 0)
+    if (job->computeJobDescriptor.pipeline->staticTextureSrvCount > 0)
     {
         D3D12_GPU_DESCRIPTOR_HANDLE gpuView = dx12DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
         gpuView.ptr += effectContext.bindlessTextureSrvHeapStart * dx12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -3757,7 +3790,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
     }
 
     // bind static buffer srv table
-    if (job->computeJobDescriptor.pipeline.staticBufferSrvCount > 0)
+    if (job->computeJobDescriptor.pipeline->staticBufferSrvCount > 0)
     {
         D3D12_GPU_DESCRIPTOR_HANDLE gpuView = dx12DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
         gpuView.ptr += effectContext.bindlessBufferSrvHeapStart * dx12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -3766,7 +3799,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
     }
 
     // bind static texture uav table
-    if (job->computeJobDescriptor.pipeline.staticTextureUavCount > 0)
+    if (job->computeJobDescriptor.pipeline->staticTextureUavCount > 0)
     {
         D3D12_GPU_DESCRIPTOR_HANDLE gpuView = dx12DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
         gpuView.ptr += effectContext.bindlessTextureUavHeapStart * dx12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -3775,7 +3808,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
     }
 
     // bind static buffer uav table
-    if (job->computeJobDescriptor.pipeline.staticBufferUavCount > 0)
+    if (job->computeJobDescriptor.pipeline->staticBufferUavCount > 0)
     {
         D3D12_GPU_DESCRIPTOR_HANDLE gpuView = dx12DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
         gpuView.ptr += effectContext.bindlessBufferUavHeapStart * dx12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -3784,7 +3817,7 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
     }
 
     // If we are dispatching indirectly, transition the argument resource to indirect argument
-    if (job->computeJobDescriptor.pipeline.cmdSignature)
+    if (job->computeJobDescriptor.pipeline->cmdSignature)
     {
         addBarrier(backendContext, FFX_BARRIER_TYPE_TRANSITION, &job->computeJobDescriptor.cmdArgument, FFX_API_RESOURCE_STATE_INDIRECT_ARGUMENT);
     }
@@ -3793,12 +3826,12 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
     flushBarriers(backendContext, dx12CommandList);
 
     // bind pipeline
-    ID3D12PipelineState* dx12PipelineStateObject = reinterpret_cast<ID3D12PipelineState*>(job->computeJobDescriptor.pipeline.pipeline);
+    ID3D12PipelineState* dx12PipelineStateObject = reinterpret_cast<ID3D12PipelineState*>(job->computeJobDescriptor.pipeline->pipeline);
     dx12CommandList->SetPipelineState(dx12PipelineStateObject);
 
     // copy data to constant buffer and bind
     {
-        for (uint32_t currentRootConstantIndex = 0; currentRootConstantIndex < job->computeJobDescriptor.pipeline.constCount; ++currentRootConstantIndex) {
+        for (uint32_t currentRootConstantIndex = 0; currentRootConstantIndex < job->computeJobDescriptor.pipeline->constCount; ++currentRootConstantIndex) {
 
             // If we have a constant buffer allocator, use that, otherwise use the default backend allocator
             FfxApiConstantBufferAllocation allocation;
@@ -3817,12 +3850,12 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX12*       backendConte
     }
 
     // Dispatch (or dispatch indirect)
-    if (job->computeJobDescriptor.pipeline.cmdSignature)
+    if (job->computeJobDescriptor.pipeline->cmdSignature)
     {
         const uint32_t resourceIndex = job->computeJobDescriptor.cmdArgument.internalIndex;
         ID3D12Resource* pResource = backendContext->pResources[resourceIndex].resourcePtr;
 
-        dx12CommandList->ExecuteIndirect(reinterpret_cast<ID3D12CommandSignature*>(job->computeJobDescriptor.pipeline.cmdSignature), 1, pResource, job->computeJobDescriptor.cmdArgumentOffset, nullptr, 0);
+        dx12CommandList->ExecuteIndirect(reinterpret_cast<ID3D12CommandSignature*>(job->computeJobDescriptor.pipeline->cmdSignature), 1, pResource, job->computeJobDescriptor.cmdArgumentOffset, nullptr, 0);
     }
     else
     {

@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -22,101 +22,172 @@
 
 #pragma once
 
+//------------------------------------------------------------------------------
+// FFX Includes
+//------------------------------------------------------------------------------
+
+// ffx::InitHelper
+// ffx::struct_type
 #include "../../api/include/ffx_api.hpp"
+
+//------------------------------------------------------------------------------
+// FFX Denoiser Includes
+//------------------------------------------------------------------------------
+
+// FFX_API_CREATE_CONTEXT_DESC_TYPE_DENOISER
+// FFX_API_CONFIGURE_DESC_TYPE_DENOISER_KEYVALUE
+// FFX_API_DISPATCH_DESC_DEBUG_VIEW_TYPE_DENOISER
+// FFX_API_DISPATCH_DESC_INPUT_DOMINANT_LIGHT_TYPE_DENOISER
+// FFX_API_DISPATCH_DESC_INPUT_4_SIGNALS_TYPE_DENOISER
+// FFX_API_DISPATCH_DESC_INPUT_2_SIGNALS_TYPE_DENOISER
+// FFX_API_DISPATCH_DESC_INPUT_1_SIGNAL_TYPE_DENOISER
+// FFX_API_DISPATCH_DESC_TYPE_DENOISER
+// FFX_API_QUERY_DESC_TYPE_DENOISER_GET_DEFAULT_KEYVALUE
+// FFX_API_QUERY_DESC_TYPE_DENOISER_GPU_MEMORY_USAGE
+// FFX_API_QUERY_DESC_TYPE_DENOISER_GET_VERSION
+// ffxCreateContextDescDenoiser
+// ffxConfigureDescDenoiserKeyValue
+// ffxDispatchDescDenoiser
+// ffxDispatchDescDenoiserDebugView
+// ffxDispatchDescDenoiserInputDominantLight
+// ffxDispatchDescDenoiserInput4Signals
+// ffxDispatchDescDenoiserInput2Signals
+// ffxDispatchDescDenoiserInput1Signal
+// ffxQueryDescDenoiserGetDefaultKeyValue
+// ffxQueryDescDenoiserGetGPUMemoryUsage
+// ffxQueryDescDenoiserGetVersion
 #include "ffx_denoiser.h"
+
+//------------------------------------------------------------------------------
+// External Includes
+//------------------------------------------------------------------------------
+
+// uint64_t
+#include <stdint.h>
+// std::integral_constant
+#include <type_traits>
+
+//------------------------------------------------------------------------------
+// FFX Denoiser Declarations
+//------------------------------------------------------------------------------
 
 // Helper types for header initialization. Api definition is in .h file.
 
 namespace ffx
 {
-    template <>
-    struct struct_type<ffxCreateContextDescDenoiser> : std::integral_constant<uint64_t, FFX_API_CREATE_CONTEXT_DESC_TYPE_DENOISER>
-    {
-    };
+    //--------------------------------------------------------------------------
+    // FFX Denoiser Descriptions: Create Context
+    //--------------------------------------------------------------------------
+    
+    template<>
+    struct struct_type< ffxCreateContextDescDenoiser >
+        : std::integral_constant< uint64_t, FFX_API_CREATE_CONTEXT_DESC_TYPE_DENOISER >
+    {};
 
-    struct CreateContextDescDenoiser : public InitHelper<ffxCreateContextDescDenoiser>
-    {
-    };
+    struct CreateContextDescDenoiser
+        : InitHelper< ffxCreateContextDescDenoiser >
+    {};
 
-    template <>
-    struct struct_type<ffxDispatchDescDenoiser> : std::integral_constant<uint64_t, FFX_API_DISPATCH_DESC_TYPE_DENOISER>
-    {
-    };
-
-    struct DispatchDescDenoiser : public InitHelper<ffxDispatchDescDenoiser>
-    {
-    };
-
-    template <>
-    struct struct_type<ffxDispatchDescDenoiserInput4Signals> : std::integral_constant<uint64_t, FFX_API_DISPATCH_DESC_INPUT_4_SIGNALS_TYPE_DENOISER>
-    {
-    };
-
-    struct DispatchDescDenoiserInput4Signals : public InitHelper<ffxDispatchDescDenoiserInput4Signals>
-    {
-    };
-
-    template <>
-    struct struct_type<ffxDispatchDescDenoiserInput2Signals> : std::integral_constant<uint64_t, FFX_API_DISPATCH_DESC_INPUT_2_SIGNALS_TYPE_DENOISER>
-    {
-    };
-
-    struct DispatchDescDenoiserInput2Signals : public InitHelper<ffxDispatchDescDenoiserInput2Signals>
-    {
-    };
-
-    template <>
-    struct struct_type<ffxDispatchDescDenoiserInput1Signal> : std::integral_constant<uint64_t, FFX_API_DISPATCH_DESC_INPUT_1_SIGNAL_TYPE_DENOISER>
-    {
-    };
-
-    struct DispatchDescDenoiserInput1Signal : public InitHelper<ffxDispatchDescDenoiserInput1Signal>
-    {
-    };
-
-    template <>
-    struct struct_type<ffxDispatchDescDenoiserInputDominantLight> : std::integral_constant<uint64_t, FFX_API_DISPATCH_DESC_INPUT_DOMINANT_LIGHT_TYPE_DENOISER>
-    {
-    };
-
-    struct DispatchDescDenoiserInputDominantLight : public InitHelper<ffxDispatchDescDenoiserInputDominantLight>
-    {
-    };
+    //--------------------------------------------------------------------------
+    // FFX Denoiser Descriptions: Configure
+    //--------------------------------------------------------------------------
 
     template<>
-    struct struct_type<ffxConfigureDescDenoiserSettings> : std::integral_constant<uint64_t, FFX_API_CONFIGURE_DESC_TYPE_DENOISER_SETTINGS>
-    {
-    };
+    struct struct_type< ffxConfigureDescDenoiserKeyValue >
+        : std::integral_constant< uint64_t, FFX_API_CONFIGURE_DESC_TYPE_DENOISER_KEYVALUE >
+    {};
 
-    struct ConfigureDescDenoiserSettings : public InitHelper<ffxConfigureDescDenoiserSettings>
-    {
-    };
+    struct ConfigureDescDenoiserKeyValue
+        : InitHelper< ffxConfigureDescDenoiserKeyValue >
+    {};
+    
+    //--------------------------------------------------------------------------
+    // FFX Denoiser Descriptions: Dispatch
+    //--------------------------------------------------------------------------
 
-    template <>
-    struct struct_type<ffxQueryDescDenoiserGetGPUMemoryUsage> : std::integral_constant<uint64_t, FFX_API_QUERY_DESC_TYPE_DENOISER_GPU_MEMORY_USAGE>
-    {
-    };
+    template<>
+    struct struct_type< ffxDispatchDescDenoiser >
+        : std::integral_constant< uint64_t, FFX_API_DISPATCH_DESC_TYPE_DENOISER >
+    {};
 
-    struct QueryDescDenoiserGetGPUMemoryUsage : public InitHelper<ffxQueryDescDenoiserGetGPUMemoryUsage>
-    {
-    };
+    struct DispatchDescDenoiser
+        : InitHelper< ffxDispatchDescDenoiser >
+    {};
 
-    template <>
-    struct struct_type<ffxQueryDescDenoiserGetVersion> : std::integral_constant<uint64_t, FFX_API_QUERY_DESC_TYPE_DENOISER_GET_VERSION>
-    {
-    };
+    template<>
+    struct struct_type< ffxDispatchDescDenoiserDebugView >
+        : std::integral_constant< uint64_t, FFX_API_DISPATCH_DESC_DEBUG_VIEW_TYPE_DENOISER >
+    {};
 
-    struct QueryDescDenoiserGetVersion : public InitHelper<ffxQueryDescDenoiserGetVersion>
-    {
-    };
+    struct DispatchDescDenoiserDebugView
+        : InitHelper< ffxDispatchDescDenoiserDebugView >
+    {};
 
-    template <>
-    struct struct_type<ffxQueryDescDenoiserGetDefaultSettings> : std::integral_constant<uint64_t, FFX_API_QUERY_DESC_TYPE_DENOISER_GET_DEFAULT_SETTINGS>
-    {
-    };
+    template<>
+    struct struct_type< ffxDispatchDescDenoiserInputDominantLight >
+        : std::integral_constant< uint64_t, FFX_API_DISPATCH_DESC_INPUT_DOMINANT_LIGHT_TYPE_DENOISER >
+    {};
 
-    struct QueryDescDenoiserGetDefaultSettings : public InitHelper<ffxQueryDescDenoiserGetDefaultSettings>
-    {
-    };
+    struct DispatchDescDenoiserInputDominantLight
+        : InitHelper< ffxDispatchDescDenoiserInputDominantLight >
+    {};
+
+    template<>
+    struct struct_type< ffxDispatchDescDenoiserInput4Signals >
+        : std::integral_constant< uint64_t, FFX_API_DISPATCH_DESC_INPUT_4_SIGNALS_TYPE_DENOISER >
+    {};
+
+    struct DispatchDescDenoiserInput4Signals
+        : InitHelper< ffxDispatchDescDenoiserInput4Signals >
+    {};
+
+    template<>
+    struct struct_type< ffxDispatchDescDenoiserInput2Signals >
+        : std::integral_constant< uint64_t, FFX_API_DISPATCH_DESC_INPUT_2_SIGNALS_TYPE_DENOISER >
+    {};
+
+    struct DispatchDescDenoiserInput2Signals
+        : InitHelper< ffxDispatchDescDenoiserInput2Signals >
+    {};
+
+    template<>
+    struct struct_type< ffxDispatchDescDenoiserInput1Signal >
+        : std::integral_constant< uint64_t, FFX_API_DISPATCH_DESC_INPUT_1_SIGNAL_TYPE_DENOISER >
+    {};
+
+    struct DispatchDescDenoiserInput1Signal
+        : InitHelper< ffxDispatchDescDenoiserInput1Signal >
+    {};
+
+    //--------------------------------------------------------------------------
+    // FFX Denoiser Descriptions: Query
+    //--------------------------------------------------------------------------
+
+    template<>
+    struct struct_type< ffxQueryDescDenoiserGetDefaultKeyValue >
+        : std::integral_constant< uint64_t, FFX_API_QUERY_DESC_TYPE_DENOISER_GET_DEFAULT_KEYVALUE >
+    {};
+
+    struct QueryDescDenoiserGetDefaultKeyValue
+        : InitHelper< ffxQueryDescDenoiserGetDefaultKeyValue >
+    {};
+
+    template<>
+    struct struct_type< ffxQueryDescDenoiserGetGPUMemoryUsage >
+        : std::integral_constant< uint64_t, FFX_API_QUERY_DESC_TYPE_DENOISER_GPU_MEMORY_USAGE >
+    {};
+
+    struct QueryDescDenoiserGetGPUMemoryUsage
+        : InitHelper< ffxQueryDescDenoiserGetGPUMemoryUsage >
+    {};
+
+    template<>
+    struct struct_type< ffxQueryDescDenoiserGetVersion >
+        : std::integral_constant< uint64_t, FFX_API_QUERY_DESC_TYPE_DENOISER_GET_VERSION >
+    {};
+
+    struct QueryDescDenoiserGetVersion
+        : InitHelper< ffxQueryDescDenoiserGetVersion >
+    {};
 
 }  // namespace ffx

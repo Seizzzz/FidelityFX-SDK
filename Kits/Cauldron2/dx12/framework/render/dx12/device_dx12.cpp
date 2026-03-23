@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -175,7 +175,7 @@ namespace cauldron
                 // Handle failure / device removal
                 HRESULT reason = m_pDevice->GetDeviceRemovedReason();
                 CauldronError(L"Error: ID3D12Device::SetStablePowerState(true) failed:");
-                CauldronError((const wchar_t*)_com_error(reason).ErrorMessage());
+                CauldronError(StringToWString(_com_error(reason).ErrorMessage()).c_str());
 
                 // Override power state request to not crash again
                 CauldronConfig* pModifiedConfig = const_cast<CauldronConfig*>(pConfig);

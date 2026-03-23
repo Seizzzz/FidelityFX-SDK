@@ -7,8 +7,8 @@
 - [FidelityFX™ Super Resolution Frame Generation Swapchain 3.1.6](frame-interpolation-swap-chain.md)
 - [FidelityFX™ Super Resolution 2.3.4](super-resolution-temporal.md)
 - [FidelityFX™ Super Resolution 3.1.5](super-resolution-upscaler.md)
-- [FSR™ Upscaling 4.0.3](super-resolution-ml.md)
-- [FSR™ Ray Regeneration 1.0.0](denoising.md)
+- [FSR™ Upscaling 4.1.0](super-resolution-ml.md)
+- [FSR™ Ray Regeneration 1.1.0](denoising.md)
 - [FSR™ Radiance Caching (Preview)](radiance-cache.md)
 
 <!-- - @subpage page_techniques_frame-interpolation-ml "FSR™ Frame Generation (ML)" -->

@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -162,7 +162,7 @@ public:
                     allocator->SetName(L"Dx12CommandPool::Allocator");
                     if (SUCCEEDED(device->CreateCommandList(queueDesc.NodeMask, queueDesc.Type, allocator, nullptr, IID_PPV_ARGS(&list))))
                     {
-                        allocator->SetName(L"Dx12CommandPool::Commandlist");
+                        list->SetName(L"Dx12CommandPool::Commandlist");
                         list->Close();
 
                         if (SUCCEEDED(device->CreateFence(availableFenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence))))

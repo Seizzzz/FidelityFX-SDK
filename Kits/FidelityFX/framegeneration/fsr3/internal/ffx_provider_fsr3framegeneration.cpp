@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -240,7 +240,11 @@ ffxReturnCode_t ffxProvider_Fsr3FrameGeneration::Configure(ffxContext* context, 
         // Skip setting up the callback if no swapchain context notification is requested, this will avoid ABI checks and allow for run configure without swapchain
         if (!(config.flags & FFX_FRAMEGENERATION_FLAG_NO_SWAPCHAIN_CONTEXT_NOTIFY))
         {
+        #ifdef FFX_BACKEND_VK
+            FfxABIVersion version = FFX_ABI_VALID; // Feng, hack for now
+        #else
             FfxABIVersion version = internal_context->backendInterfaceFi.fpGetSwapchainABI(desc->swapChain);
+        #endif
             VERIFY(version != FfxABIVersion::FFX_ABI_INVALID && version != FfxABIVersion::FFX_ABI_OLD, FFX_API_RETURN_ERROR_RUNTIME_ERROR);
 
             config.frameGenerationCallback = nullptr;

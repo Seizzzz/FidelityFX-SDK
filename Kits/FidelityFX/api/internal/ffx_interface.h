@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -52,7 +52,7 @@ FFX_FORWARD_DECLARE(FfxInterface);
 /// FidelityFX SDK minor version.
 ///
 /// @ingroup FfxInterface
-#define FFX_SDK_VERSION_MINOR (0)
+#define FFX_SDK_VERSION_MINOR (2)
 
 /// FidelityFX SDK patch version.
 ///
@@ -378,17 +378,18 @@ typedef FfxErrorCode (*FfxCreateHeapFunc)(FfxInterface* backendInterface, const 
 /// @ingroup FfxInterface
 typedef FfxErrorCode (*FfxDestroyHeapFunc)(FfxInterface* backendInterface, FfxResourceHeap heap, FfxUInt32 effectContextId);
 
-/// Destroy a resource
+/// Stage constant buffer data.
 ///
-/// This callback is intended for the backend to release an internal resource.
+/// This callback uploads CPU-side data into an internal constant buffer managed by the backend.
 ///
-/// @param [in] backendInterface                    A pointer to the backend interface.
-/// @param [in] resource                            A pointer to a <c><i>FfxApiResource</i></c> object.
+/// @param [in]  backendInterface   A pointer to the backend interface.
+/// @param [in]  data               A pointer to the memory location to copy from.
+/// @param [in]  size               The number of bytes to copy.
+/// @param [out] constantBuffer     A pointer to an <c><i>FfxConstantBuffer</i></c>
+///                                 structure that will receive the staged data.
 ///
-/// @retval
-/// FFX_OK                                          The operation completed successfully.
-/// @retval
-/// Anything else                                   The operation failed.
+/// @retval FFX_OK                  The operation completed successfully.
+/// @retval other                   The operation failed.
 ///
 /// @ingroup FfxInterface
 typedef FfxErrorCode (*FfxStageConstantBufferDataFunc)(
@@ -403,7 +404,7 @@ typedef FfxErrorCode (*FfxStageConstantBufferDataFunc)(
 /// and samplers.
 ///
 /// @param [in] backendInterface                    A pointer to the backend interface.
-/// @param [in] pass                                The identifier for the pass.
+/// @param [in] pShaderBlob                         A pointer to a <c><i>FfxShaderBlob</i></c> containing the shader byte code.
 /// @param [in] pipelineDescription                 A pointer to a <c><i>FfxPipelineDescription</i></c> describing the pipeline to be created.
 /// @param [in] effectContextId                     The context space to be used for the effect in question.
 /// @param [out] outPipeline                        A pointer to a <c><i>FfxPipelineState</i></c> structure which should be populated.
@@ -424,7 +425,6 @@ typedef FfxErrorCode (*FfxCreatePipelineFunc)(
 /// Destroy a render pipeline.
 ///
 /// @param [in] backendInterface                    A pointer to the backend interface.
-/// @param [in] effectContextId                     The context space to be used for the effect in question.
 /// @param [out] pipeline                           A pointer to a <c><i>FfxPipelineState</i></c> structure which should be released.
 /// @param [in] effectContextId                     The context space to be used for the effect in question.
 ///
@@ -457,6 +457,25 @@ typedef FfxErrorCode (*FfxDestroyPipelineFunc)(
 typedef FfxErrorCode (*FfxScheduleGpuJobFunc)(
     FfxInterface* backendInterface,
     const FfxGpuJobDescription* job);
+
+/// Query a render job descriptor to be executed on the next call of
+/// <c><i>FfxExecuteGpuJobsFunc</i></c>.
+///
+/// Render jobs can perform one of three different tasks: clear, copy or
+/// compute dispatches.
+///
+/// @param [in] backendInterface                    A pointer to the backend interface.
+/// @param [out] job                                A pointer to a <c><i>FfxGpuJobDescription</i></c> structure.
+///
+/// @retval
+/// FFX_OK                                          The operation completed successfully.
+/// @retval
+/// Anything else                                   The operation failed.
+///
+/// @ingroup FfxInterface
+typedef FfxErrorCode (*FfxQueryNextGpuJobDescFunc)(
+    FfxInterface*               backendInterface,
+    FfxGpuJobDescription**      outJobPtr);
 
 /// Execute scheduled render jobs on the <c><i>comandList</i></c> provided.
 ///
@@ -575,6 +594,8 @@ typedef struct FfxInterface {
     FfxGetSwapchainABIFunc             fpGetSwapchainABI;             ///< A callback function to query a swapchain's ABI version.
 	FfxCreateHeapFunc                  fpCreateHeap;                  ///< A callback function to create a heap.
 	FfxDestroyHeapFunc                 fpDestroyHeap;                 ///< A callback function to destroy a heap.
+
+    FfxQueryNextGpuJobDescFunc         fpQueryNextGpuJobDesc;         ///< A callback function to get the next render job descriptor in the scheduled list.
 
     void*                              scratchBuffer;                 ///< A preallocated buffer for memory utilized internally by the backend.
     size_t                             scratchBufferSize;             ///< Size of the buffer pointed to by <c><i>scratchBuffer</i></c>.

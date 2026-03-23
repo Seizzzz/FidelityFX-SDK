@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -88,7 +88,7 @@ struct GBufferOutput
     float4 Normals              : SV_Target1;
     float4 AoRoughnessMetallic  : SV_Target2;
 #ifdef HAS_MOTION_VECTORS_RT
-    float2 MotionVectors : TARGET(HAS_MOTION_VECTORS_RT);
+    float3 MotionVectors : TARGET(HAS_MOTION_VECTORS_RT);
 #endif // HAS_MOTION_VECTORS_RT
 };
 
@@ -123,11 +123,16 @@ GBufferOutput MainPS(VS_SURFACE_OUTPUT SurfaceInput
     GBufferOutput GBuffer;
 #ifdef HAS_MOTION_VECTORS_RT
     float2 cancelJitter = SceneInfo.CameraInfo.PrevJitter - SceneInfo.CameraInfo.CurrJitter;
-    GBuffer.MotionVectors = (SurfaceInput.PrevPosition.xy / SurfaceInput.PrevPosition.w) -
-                            (SurfaceInput.CurPosition.xy / SurfaceInput.CurPosition.w) + cancelJitter;
+    GBuffer.MotionVectors.xy = (SurfaceInput.PrevPosition.xy / SurfaceInput.PrevPosition.w)
+                             - (SurfaceInput.CurPosition.xy  / SurfaceInput.CurPosition.w)
+                             + cancelJitter;
 
     // Transform motion vectors from NDC space to UV space (+Y is top-down).
-    GBuffer.MotionVectors *= float2(0.5f, -0.5f);
+    GBuffer.MotionVectors.xy *= float2(0.5f, -0.5f);
+    
+    // Absolute linear depth delta
+    GBuffer.MotionVectors.z = abs(SurfaceInput.PrevPosition.w) - abs(SurfaceInput.CurPosition.w);
+    
 #endif // HAS_MOTION_VECTORS_RT
 
     GBuffer.BaseColorAlpha      = BaseColorAlpha;

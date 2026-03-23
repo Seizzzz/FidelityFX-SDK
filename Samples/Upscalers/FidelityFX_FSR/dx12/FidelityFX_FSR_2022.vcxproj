@@ -72,19 +72,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>%(AdditionalDependencies);"$(SolutionDir)..\..\..\..\Kits\Cauldron2\dx12\$(Platform)\$(Configuration)\cauldron.lib";"$(SolutionDir)..\..\..\..\Kits\OpenSource\amd\acs\amd_acs_x64.lib";"$(SolutionDir)..\..\..\..\Kits\OpenSource\amd\ags\amd_ags_x64.lib";"$(SolutionDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-windows\x64-windows\lib\WinPixEventRuntime.lib";"$(FfxLibPathLoader)amd_fidelityfx_loader_dx12.lib";Xinput.lib;Shcore.lib;d3dcompiler.lib;DXGI.lib;D3D12.lib</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>xcopy /y $(ProjectDir)config\fsrapiconfig.json $(OutDir)configs\
-xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12.pdb $(OutDir)
-xcopy /y $(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.pdb $(OutDir)
-xcopy /y $(FfxDllPathFrameGen)amd_fidelityfx_framegeneration_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathFrameGen)amd_fidelityfx_framegeneration_dx12.pdb $(OutDir)
-xcopy /y $(ProjectDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-windows\x64-windows\debug\bin $(OutDir)</Command>
-    </PostBuildEvent>
-    <PostBuildEvent>
-      <Message>Copying required sample files</Message>
-    </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpiawarescaling.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
@@ -108,19 +95,6 @@ xcopy /y $(ProjectDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-window
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>%(AdditionalDependencies);"$(SolutionDir)..\..\..\..\Kits\Cauldron2\dx12\$(Platform)\$(Configuration)\cauldron.lib";"$(SolutionDir)..\..\..\..\Kits\OpenSource\amd\acs\amd_acs_x64.lib";"$(SolutionDir)..\..\..\..\Kits\OpenSource\amd\ags\amd_ags_x64.lib";"$(SolutionDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-windows\x64-windows\lib\WinPixEventRuntime.lib";"$(SolutionDir)..\..\..\..\Kits\FidelityFX\signedbin\amd_fidelityfx_loader_dx12.lib";Xinput.lib;Shcore.lib;d3dcompiler.lib;DXGI.lib;D3D12.lib</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>xcopy /y $(ProjectDir)config\fsrapiconfig.json $(OutDir)configs\
-xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12.pdb $(OutDir)
-xcopy /y $(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.pdb $(OutDir)
-xcopy /y $(FfxDllPathFrameGen)amd_fidelityfx_framegeneration_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathFrameGen)amd_fidelityfx_framegeneration_dx12.pdb $(OutDir)
-xcopy /y $(ProjectDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-windows\x64-windows\debug\bin $(OutDir)</Command>
-    </PostBuildEvent>
-    <PostBuildEvent>
-      <Message>Copying required sample files</Message>
-    </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpiawarescaling.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
@@ -145,4 +119,31 @@ xcopy /y $(ProjectDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-window
     <None Include="config\fsrapiconfig.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyRequiredDlls" AfterTargets="Build">
+    <Message Importance="high" Text="Copying required FidelityFX DLLs..." />
+    
+    <!-- Copy config file -->
+    <MakeDir Directories="$(OutDir)configs" />
+    <Copy SourceFiles="$(ProjectDir)config\fsrapiconfig.json" DestinationFolder="$(OutDir)configs\" />
+    
+    <!-- Copy Loader DLLs -->
+    <Copy SourceFiles="$(FfxDllPathLoader)amd_fidelityfx_loader_dx12.dll" DestinationFolder="$(OutDir)" />
+    <Copy SourceFiles="$(FfxDllPathLoader)amd_fidelityfx_loader_dx12.pdb" DestinationFolder="$(OutDir)" Condition="Exists('$(FfxDllPathLoader)amd_fidelityfx_loader_dx12.pdb')" />
+    
+    <!-- Copy Upscaler DLLs -->
+    <Copy SourceFiles="$(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.dll" DestinationFolder="$(OutDir)" />
+    <Copy SourceFiles="$(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.pdb" DestinationFolder="$(OutDir)" Condition="Exists('$(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.pdb')" />
+    
+    <!-- Copy FrameGeneration DLLs -->
+    <Copy SourceFiles="$(FfxDllPathFrameGen)amd_fidelityfx_framegeneration_dx12.dll" DestinationFolder="$(OutDir)" />
+    <Copy SourceFiles="$(FfxDllPathFrameGen)amd_fidelityfx_framegeneration_dx12.pdb" DestinationFolder="$(OutDir)" Condition="Exists('$(FfxDllPathFrameGen)amd_fidelityfx_framegeneration_dx12.pdb')" />
+    
+    <!-- Copy vcpkg runtime dependencies -->
+    <ItemGroup>
+      <VcpkgBinFiles Include="$(ProjectDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-windows\x64-windows\bin\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(VcpkgBinFiles)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    
+    <Message Importance="high" Text="Successfully copied all required DLLs" />
+  </Target>
 </Project>

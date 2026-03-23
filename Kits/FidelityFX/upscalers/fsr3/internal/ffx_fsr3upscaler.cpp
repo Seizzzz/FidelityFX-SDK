@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -25,6 +25,8 @@
 #include <string.h>     // for memset
 #include <cfloat>       // for FLT_EPSILON
 #include "../include/ffx_fsr3upscaler.h"
+
+#include "../../../api/internal/ffx_backends.h"
 
 #define FFX_CPU
 
@@ -55,10 +57,6 @@ static const uint32_t FSR3UPSCALER_MAX_QUEUED_FRAMES = 16;
 
 #include "ffx_fsr3upscaler_private.h"
 #include "ffx_fsr3upscaler_shaderblobs.h"
-
-#ifdef FFX_BACKEND_DX12
-#include "../../../backend/dx12/ffx_dx12.h"
-#endif // FFX_BACKEND_DX12
 
 // lists to map shader resource bindpoint name to resource identifier
 typedef struct ResourceBinding
@@ -595,7 +593,7 @@ static FfxErrorCode fsr3upscalerCreate(FfxFsr3UpscalerContext_Private* context, 
 
     // Check version info - make sure we are linked with the right backend version
     FfxVersionNumber version = context->contextDescription.backendInterface.fpGetSDKVersion(&context->contextDescription.backendInterface);
-    FFX_RETURN_ON_ERROR(version == FFX_SDK_MAKE_VERSION(2, 0, 0), FFX_ERROR_INVALID_VERSION);
+    FFX_RETURN_ON_ERROR(version == FFX_SDK_MAKE_VERSION(FFX_SDK_VERSION_MAJOR, FFX_SDK_VERSION_MINOR, FFX_SDK_VERSION_PATCH), FFX_ERROR_INVALID_VERSION);
 
     // Create the context.
     FfxErrorCode errorCode = context->contextDescription.backendInterface.fpCreateBackendContext(&context->contextDescription.backendInterface, FFX_EFFECT_FSR3UPSCALER, nullptr, &context->effectContextId);
@@ -823,7 +821,7 @@ static void scheduleDispatch(FfxFsr3UpscalerContext_Private* context, const FfxF
     jobDescriptor.dimensions[0] = dispatchX;
     jobDescriptor.dimensions[1] = dispatchY;
     jobDescriptor.dimensions[2] = 1;
-    jobDescriptor.pipeline = *pipeline;
+    jobDescriptor.pipeline = pipeline;
 
     for (uint32_t currentRootConstantIndex = 0; currentRootConstantIndex < pipeline->constCount; ++currentRootConstantIndex) {
 #ifdef FFX_DEBUG
@@ -1306,9 +1304,8 @@ FFX_API FfxErrorCode ffxFsr3UpscalerGetGpuMemoryUsage(FfxDevice device, FfxApiDi
     size_t resourceCount = sizeof(resources) / sizeof(resources[0]);
     for (size_t i = 0; i < resourceCount; ++i)
     {
-#ifdef FFX_BACKEND_DX12
-        FFX_VALIDATE(ffxGetResourceSizeFromDescriptionDX12(device, resources[i], &size));
-#endif // FFX_BACKEND_DX12
+        FFX_VALIDATE(GetResourceSizeFromDescription(device, resources[i], &size));
+
         pVramUsage->totalUsageInBytes += size;
         if (resources[i]->resourceDescription.flags & FFX_API_RESOURCE_FLAGS_ALIASABLE)
         {
@@ -1329,9 +1326,8 @@ FFX_API FfxErrorCode ffxFsr3UpscalerGetGpuMemoryUsage(FfxDevice device, FfxApiDi
     resourceCount = sizeof(sharedResources) / sizeof(sharedResources[0]);
     for (size_t i = 0; i < resourceCount; ++i)
     {
-#ifdef FFX_BACKEND_DX12
-        FFX_VALIDATE(ffxGetResourceSizeFromDescriptionDX12(device, sharedResources[i], &size));
-#endif // FFX_BACKEND_DX12
+        FFX_VALIDATE(GetResourceSizeFromDescription(device, resources[i], &size));
+
         pVramUsage->totalUsageInBytes += size;
         if (resources[i]->resourceDescription.flags & FFX_API_RESOURCE_FLAGS_ALIASABLE)
         {
@@ -1509,7 +1505,7 @@ FfxErrorCode ffxFsr3UpscalerContextGenerateReactiveMask(FfxFsr3UpscalerContext* 
     jobDescriptor.dimensions[0] = dispatchSrcX;
     jobDescriptor.dimensions[1] = dispatchSrcY;
     jobDescriptor.dimensions[2] = 1;
-    jobDescriptor.pipeline = *pipeline;
+    jobDescriptor.pipeline = pipeline;
 
     for (uint32_t currentShaderResourceViewIndex = 0; currentShaderResourceViewIndex < pipeline->srvTextureCount; ++currentShaderResourceViewIndex) {
 

@@ -6,11 +6,11 @@ The AMD FSR™ SDK is a collection of highly optimized effects (headers and DLLs
 
 - [FidelityFX™ Super Resolution 2.3.4](../techniques/super-resolution-temporal.md)
 - [FidelityFX™ Super Resolution 3.1.5](../techniques/super-resolution-upscaler.md)
-- [FSR™ Upscaling 4.0.3](../techniques/super-resolution-ml.md)
+- [FSR™ Upscaling 4.1.0](../techniques/super-resolution-ml.md)
 - [FidelityFX™ Super Resolution Frame Generation 3.1.6](../techniques/frame-interpolation.md)
 - [FidelityFX™ Super Resolution Frame Generation Swapchain 3.1.6](../techniques/frame-interpolation-swap-chain.md)
 - [FSR™ Frame Generation 4.0.0](../techniques/frame-interpolation-ml.md)
-- [FSR™ Ray Regeneration 1.0.0](../techniques/denoising.md)
+- [FSR™ Ray Regeneration 1.1.0](../techniques/denoising.md)
 - [FSR™ Radiance Caching (Technical Preview)](../techniques/radiance-cache.md)
 
 <h2>Supported ecosystems</h2>

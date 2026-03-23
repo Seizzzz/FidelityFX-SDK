@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -195,8 +195,6 @@ namespace cauldron
 
         // Fix up aspect ratio and vertical field of view (which may have changed)
         m_pData->Perspective.AspectRatio = GetFramework()->GetAspectRatio();
-        float Xfov = std::min<float>(m_pData->Perspective.Yfov * m_pData->Perspective.AspectRatio, CAULDRON_PI2);
-        m_pData->Perspective.Yfov = Xfov / m_pData->Perspective.AspectRatio;
 
         // Use FLT_MAX, as finite far plane for infinite far plane projection
         if (s_InvertedDepth)

@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -292,7 +292,7 @@ namespace cauldron
         /**
          * @brief   Gets the camera's horizontal field of view.
          */
-        const float GetFovX() const { return std::min<float>(m_pData->Perspective.Yfov * m_pData->Perspective.AspectRatio, CAULDRON_PI2); }
+        const float GetFovX() const { return m_pData->Perspective.Yfov * m_pData->Perspective.AspectRatio; }
 
         /**
          * @brief   Gets the camera's vertical field of view.

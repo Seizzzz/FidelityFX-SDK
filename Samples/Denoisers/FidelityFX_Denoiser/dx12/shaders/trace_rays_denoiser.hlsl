@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -62,9 +62,9 @@ RWTexture2D<float4> g_DirectDiffuseTarget : register(u1);
 RWTexture2D<float4> g_IndirectSpecularTarget : register(u2);
 RWTexture2D<float4> g_IndirectDiffuseTarget : register(u3);
 RWTexture2D<float> g_DominantLightVisibilityTarget : register(u4);
-RWTexture2D<float4> g_DiffuseAlbedoTarget : register(u5);
-RWTexture2D<float4> g_SpecularAlbedoTarget : register(u6);
-RWTexture2D<float4> g_FusedAlbedoTarget : register(u7);
+RWTexture2D<float3> g_DiffuseAlbedoTarget : register(u5);
+RWTexture2D<float3> g_SpecularAlbedoTarget : register(u6);
+RWTexture2D<float3> g_FusedAlbedoTarget : register(u7);
 RWTexture2D<float4> g_NormalsTarget : register(u8);
 RWTexture2D<float4> g_SkipTarget : register(u9);
 
@@ -208,25 +208,27 @@ void main(uint3 dtid : SV_DispatchThreadID)
     if (primaryHit.hit)
     {
         MaterialInfo material = primaryHit.materialInfo;
-        float roughness = min(0.99f, saturate(material.perceptualRoughness));
+        float roughness = material.perceptualRoughness;
         
-        const float3x3 TBN = CreateTBN(primaryHit.worldNormal);
+        const float3x3 localToWorld = CreateTBN(primaryHit.worldNormal);
                 
-        float3 indirectSpecularSample = float3(0, 0, 0);
+        float4 indirectSpecularSample = float4(0, 0, 0, 0);
         float3 indirectSpecularRayDir = float3(0, 0, 0);
         if (1)
         {
             // Trace indirect specular ray
-            float3 rd = SampleReflectionVectorReroll(rngState, -ray.direction, primaryHit.worldNormal, roughness);
-            indirectSpecularRayDir = rd;
+            float pdf;
+            indirectSpecularRayDir = SampleSpecularReflectionVector(rngState, localToWorld, toCameraDirection, roughness, pdf);
+            const float sampleWeight = 0.5f / max(pdf, EPSILON);
             
             TraceRayDesc secondaryRay = ray;
             secondaryRay.origin = primaryHit.worldPosition + primaryHit.worldNormal * EPSILON;
-            secondaryRay.direction = rd;
+            secondaryRay.direction = indirectSpecularRayDir;
             secondaryRay.recursionIndex = 1;
             
             TraceRayHitResult specularHit = TraceRay(g_TLAS, secondaryRay, rngState);
-            indirectSpecularSample.xyz = specularHit.radiance;
+            indirectSpecularSample.xyz = sampleWeight * specularHit.radiance;
+            indirectSpecularSample.w = length(secondaryRay.origin - specularHit.worldPosition);
         }
         
         float3 indirectDiffuseSample = float3(0, 0, 0);
@@ -234,16 +236,17 @@ void main(uint3 dtid : SV_DispatchThreadID)
         if (1)
         {
             // Trace indirect diffuse ray
-            float3 rd = normalize(mul(CosineSampleHemisphere(rngState), TBN));
-            indirectDiffuseRayDir = rd;
+            float pdf;
+            indirectDiffuseRayDir = SampleDiffuseReflectionVector(rngState, localToWorld, pdf);
+            const float sampleWeight = 0.5f / max(pdf, EPSILON);
             
             TraceRayDesc secondaryRay = ray;
             secondaryRay.origin = primaryHit.worldPosition + primaryHit.worldNormal * EPSILON;
-            secondaryRay.direction = rd;
+            secondaryRay.direction = indirectDiffuseRayDir;
             secondaryRay.recursionIndex = 1;
             
             TraceRayHitResult diffuseHit = TraceRay(g_TLAS, secondaryRay, rngState);
-            indirectDiffuseSample.xyz = diffuseHit.radiance;
+            indirectDiffuseSample.xyz = sampleWeight * diffuseHit.radiance;
         }
 
         float roll = RandomFloat01(rngState);
@@ -255,45 +258,45 @@ void main(uint3 dtid : SV_DispatchThreadID)
         // retrieve a scale and bias to F0. See [1], Figure 3
         float2 brdf = SampleBRDFTexture(brdfSamplePoint).rg;
         
-        float3 specularAlbedo = material.reflectance0 * brdf.x + brdf.y;
-        float4 specularAlbedo_NoV = abs(float4(specularAlbedo, NoV) + lerp(-1.0f, 1.0f, roll).xxxx * 1.0f / 256.0f);
-        float4 diffuseAlbedo_Metallic = float4(material.baseColor, material.metallic);
-        float3 fusedModulator = max(1e-3, max(specularAlbedo_NoV.xyz, diffuseAlbedo_Metallic.xyz));
-        g_SpecularAlbedoTarget[pixel] = sqrt(specularAlbedo_NoV);
-        g_DiffuseAlbedoTarget[pixel] = sqrt(diffuseAlbedo_Metallic);
-        g_NormalsTarget[pixel] = float4(NormalToOctahedronUv(primaryHit.worldNormal), roughness, 0.0f);
-        g_SkipTarget[pixel] = float4(primaryHit.emission, 0.0f);
+        const float3 specularAlbedo = abs((material.reflectance0 * brdf.x + brdf.y) + lerp(-1.0f, 1.0f, roll) / 1024.0f); // RGB10A2_UNORM
+        const float3 diffuseAlbedo  = material.baseColor; // Cauldron's base color = diffuse albedo
+        const float3 fusedAlbedo    = max(1e-3f, max(specularAlbedo, diffuseAlbedo));
+        
+        g_DiffuseAlbedoTarget[pixel]  = sqrt(diffuseAlbedo);
+        g_SpecularAlbedoTarget[pixel] = sqrt(specularAlbedo);
+        g_NormalsTarget[pixel]        = float4(NormalToOctahedronUv(primaryHit.worldNormal), roughness, 0.0f);
+        g_SkipTarget[pixel]           = float4(primaryHit.emission, 0.0f);
 
         if (Constants.fuse_mode == 2)
         {
-            float3 specularRadiance = specularAlbedo_NoV.xyz * (primaryHit.specularRadiance + indirectSpecularSample);
-            float3 diffuseRadiance = diffuseAlbedo_Metallic.xyz * (1.0f - material.metallic) * (primaryHit.diffuseRadiance + indirectDiffuseSample);
-            float3 fusedRadiance = (specularRadiance + diffuseRadiance) / fusedModulator;
+            const float3 specularRadiance = specularAlbedo * (primaryHit.specularRadiance + indirectSpecularSample.xyz);
+            const float3 diffuseRadiance  = diffuseAlbedo  * (primaryHit.diffuseRadiance  + indirectDiffuseSample);
+            const float3 fusedRadiance    = (specularRadiance + diffuseRadiance) / fusedAlbedo;
             
-            g_DirectSpecularTarget[pixel] = float4(0.0f, 0.0f, 0.0f, 0.0f);
-            g_DirectDiffuseTarget[pixel] = float4(0.0f, 0.0f, 0.0f, 0.0f);
-            g_IndirectSpecularTarget[pixel] = float4(fusedRadiance, 0.0f);
-            g_IndirectDiffuseTarget[pixel] = float4(0.0f, 0.0f, 0.0f, 0.0f);
-            g_FusedAlbedoTarget[pixel] = sqrt(float4(fusedModulator, specularAlbedo_NoV.w));
+            g_DirectSpecularTarget[pixel]   = float4(0.0f, 0.0f, 0.0f, 0.0f);
+            g_DirectDiffuseTarget[pixel]    = float4(0.0f, 0.0f, 0.0f, 0.0f);
+            g_IndirectSpecularTarget[pixel] = float4(fusedRadiance, indirectSpecularSample.w);
+            g_IndirectDiffuseTarget[pixel]  = float4(0.0f, 0.0f, 0.0f, 0.0f);
+            g_FusedAlbedoTarget[pixel]      = sqrt(fusedAlbedo);
         }
         else if (Constants.fuse_mode == 1)
         {
-            float3 fusedSpecularRadiance = primaryHit.specularRadiance + indirectSpecularSample;
-            float3 fusedDiffuseRadiance = primaryHit.diffuseRadiance + indirectDiffuseSample;
+            const float3 fusedSpecularRadiance = primaryHit.specularRadiance + indirectSpecularSample.xyz;
+            const float3 fusedDiffuseRadiance  = primaryHit.diffuseRadiance  + indirectDiffuseSample;
             
-            g_DirectSpecularTarget[pixel] = float4(0.0f, 0.0f, 0.0f, 0.0f);
-            g_DirectDiffuseTarget[pixel] = float4(0.0f, 0.0f, 0.0f, 0.0f);
-            g_IndirectSpecularTarget[pixel] = float4(fusedSpecularRadiance, 0.0f);
-            g_IndirectDiffuseTarget[pixel] = float4(fusedDiffuseRadiance, 0.0f);
-            g_FusedAlbedoTarget[pixel] = float4(0, 0, 0, 0);
+            g_DirectSpecularTarget[pixel]   = float4(0.0f, 0.0f, 0.0f, 0.0f);
+            g_DirectDiffuseTarget[pixel]    = float4(0.0f, 0.0f, 0.0f, 0.0f);
+            g_IndirectSpecularTarget[pixel] = float4(fusedSpecularRadiance, indirectSpecularSample.w);
+            g_IndirectDiffuseTarget[pixel]  = float4(fusedDiffuseRadiance, 0.0f);
+            g_FusedAlbedoTarget[pixel]      = float3(0.0f, 0.0f, 0.0f);
         }
         else
         {
-            g_DirectSpecularTarget[pixel] = float4(primaryHit.specularRadiance, 0.0f);
-            g_DirectDiffuseTarget[pixel] = float4(primaryHit.diffuseRadiance, 0.0f);
-            g_IndirectSpecularTarget[pixel] = float4(indirectSpecularSample, 0.0f);
-            g_IndirectDiffuseTarget[pixel] = float4(indirectDiffuseSample, 0.0f);
-            g_FusedAlbedoTarget[pixel] = float4(0, 0, 0, 0);
+            g_DirectSpecularTarget[pixel]   = float4(primaryHit.specularRadiance, 0.0f);
+            g_DirectDiffuseTarget[pixel]    = float4(primaryHit.diffuseRadiance, 0.0f);
+            g_IndirectSpecularTarget[pixel] = float4(indirectSpecularSample);
+            g_IndirectDiffuseTarget[pixel]  = float4(indirectDiffuseSample, 0.0f);
+            g_FusedAlbedoTarget[pixel]      = float3(0.0f, 0.0f, 0.0f);
         }
 
         if (Constants.use_dominant_light)
@@ -307,15 +310,15 @@ void main(uint3 dtid : SV_DispatchThreadID)
     }
     else
     {
-        g_DirectSpecularTarget[pixel] = float4(0,0,0,0);
-        g_DirectDiffuseTarget[pixel] = float4(0,0,0,0);
-        g_IndirectSpecularTarget[pixel] = float4(0,0,0,0);
-        g_IndirectDiffuseTarget[pixel] = float4(0,0,0,0);
-        g_DiffuseAlbedoTarget[pixel] = float4(0,0,0,0);
-        g_SpecularAlbedoTarget[pixel] = float4(0,0,0,0);
-        g_FusedAlbedoTarget[pixel] = float4(0,0,0,0);
-        g_NormalsTarget[pixel] = float4(0,0,0,0);
-        g_SkipTarget[pixel] = float4(primaryHit.radiance, 0.0f);
+        g_DirectSpecularTarget[pixel]          = 0.0f;
+        g_DirectDiffuseTarget[pixel]           = 0.0f;
+        g_IndirectSpecularTarget[pixel]        = float4(0.0f, 0.0f, 0.0f, 65504.0f);
+        g_IndirectDiffuseTarget[pixel]         = 0.0f;
+        g_DiffuseAlbedoTarget[pixel]           = 0.0f;
+        g_SpecularAlbedoTarget[pixel]          = 0.0f;
+        g_FusedAlbedoTarget[pixel]             = 0.0f;
+        g_NormalsTarget[pixel]                 = 0.0f;
+        g_SkipTarget[pixel]                    = float4(primaryHit.radiance, 0.0f);
         g_DominantLightVisibilityTarget[pixel] = 0.0f;
     }
 }

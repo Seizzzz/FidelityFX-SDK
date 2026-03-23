@@ -1,4 +1,4 @@
-<h1>Welcome to the AMD FSR™ SDK 2.1.0 - "Redstone"</h1>
+<h1>Welcome to the AMD FSR™ SDK 2.2.0 - "Redstone"</h1>
 
 ![alt text](Kits/FidelityFX/docs/media/AMD_FSR_SDK_Lockup_RGB_Wht.png)
 
@@ -9,20 +9,21 @@ The FSR™ SDK includes:
 | [FSR™ SDK Technique](https://gpuopen.com/amd-fidelityfx-sdk/) | [Samples](docs/samples/index.md) | [GPUOpen page](https://gpuopen.com/) | Description |
 | --- | --- | --- | --- |
 | [FidelityFX™ Super Resolution (Temporal)](Kits/FidelityFX/docs/techniques/super-resolution-temporal.md) 2.3.4 | [FidelityFX™ FSR sample](docs/samples/super-resolution.md) | [FidelityFX™ Super Resolution 2](https://gpuopen.com/fidelityfx-superresolution-2/) | Offers a temporal (multi-frame accumulation) solution for producing high resolution frames from lower resolution inputs. |
-| [FidelityFX™ Super Resolution (Upscaler)](Kits/FidelityFX/docs/techniques/super-resolution-upscaler.md) 3.1.5 | [FidelityFX™ FSR sample](docs/samples/super-resolution.md) | [FidelityFX™ Super Resolution 3](https://gpuopen.com/fidelityfx-superresolution-3/) | Offers a temporal (multi-frame accumulation) solution for producing high resolution frames from lower resolution inputs. |
-| [FSR™ Upscaling (ML-Upscaler)](Kits/FidelityFX/docs/techniques/super-resolution-ml.md) 4.0.3 | [FidelityFX™ FSR sample](docs/samples/super-resolution.md) | [FSR™ Upscaling 4](https://gpuopen.com/fidelityfx-superresolution-4/) | Offers a machine learning-based solution for producing high resolution frames from lower resolution inputs. |
+| [FidelityFX™ Super Resolution (Upscaler)](Kits/FidelityFX/docs/techniques/super-resolution-upscaler.md) 3.1.5 | [FidelityFX™ FSR sample](/docs/samples/super-resolution.md) | [FidelityFX™ Super Resolution 3](https://gpuopen.com/fidelityfx-superresolution-3/) | Offers a temporal (multi-frame accumulation) solution for producing high resolution frames from lower resolution inputs. |
+| [FSR™ Upscaling (ML-Upscaler)](Kits/FidelityFX/docs/techniques/super-resolution-ml.md) 4.1.0 | [FidelityFX™ FSR sample](docs/samples/super-resolution.md) | [FSR™ Upscaling 4](https://gpuopen.com/fidelityfx-superresolution-4/) | Offers a machine learning-based solution for producing high resolution frames from lower resolution inputs. |
 | [FidelityFX™ Super Resolution Frame Generation](Kits/FidelityFX/docs/techniques/frame-interpolation.md) 3.1.6 | [FidelityFX™ FSR sample](docs/samples/super-resolution.md) | [FidelityFX™ Super Resolution Frame Generation 3](https://gpuopen.com/fidelityfx-superresolution-3/) | Offers generation of interpolated frames from multiple real input frames, and multiple sources of motion vector data. |
 | [FidelityFX™ Super Resolution Frame Generation SwapChain](Kits/FidelityFX/docs/techniques/frame-interpolation-swap-chain.md) 3.1.6 | [FidelityFX™ FSR sample](docs/samples/super-resolution.md) | [FidelityFX™ Super Resolution Frame Generation Swapchain 3](https://gpuopen.com/fidelityfx-superresolution-3/) | A replacement DXGI Swapchain implementation for DX12 which allows for additional frames to be presented along with real game frames, with relevant frame pacing. |
-| [FSR™ Frame Generation (ML)](Kits/FidelityFX/docs/techniques/frame-interpolation-ml.md) 4.0.0 | [FidelityFX™ FSR sample](docs/samples/super-resolution.md) | [FSR™ Frame Generation 4](https://gpuopen.com/fidelityfx-superresolution-3/) | Offers generation of interpolated frames from multiple real input frames, and multiple sources of motion vector data. |
+| [FSR™ Frame Generation (ML)](Kits/FidelityFX/docs/techniques/frame-interpolation.md) 4.0.0 | [FidelityFX™ FSR sample](docs/samples/super-resolution.md) | [FSR™ Frame Generation 4](https://gpuopen.com/fidelityfx-superresolution-3/) | Offers generation of interpolated frames from multiple real input frames, and multiple sources of motion vector data. |
 | [FSR™ Frame Generation SwapChain (ML)](Kits/FidelityFX/docs/techniques/frame-interpolation-swap-chain.md) 4.0.0 | [FidelityFX™ FSR sample](docs/samples/super-resolution.md) | [FSR™ Frame Generation Swapchain 4](https://gpuopen.com/fidelityfx-superresolution-3/) | A replacement DXGI Swapchain implementation for DX12 which allows for additional frames to be presented along with real game frames, with relevant frame pacing. |
-| [FSR™ Ray Regeneration (ML-Denoiser)](Kits/FidelityFX/docs/techniques/denoising.md) 1.0.0 | [FidelityFX Denoiser sample](docs/samples/denoiser.md) | [FSR™ Ray Regeneration 1](https://gpuopen.com/fidelityfx-rayregeneration/) | Offers a machine learning-based solution for denoising. |
-| [FSR™ Radiance Caching (Preview)](Kits/FidelityFX/docs/techniques/radiance-cache.md) | [FidelityFX NRC (Preview) sample](docs/samples/radiance-cache.md) | [FSR™ Radiance Caching (Preview)](https://gpuopen.com/fidelityfx-neuralradiancechaching-preview/) | Offers a machine learning-based solution for path tracing result caching. |
+| [FSR™ Ray Regeneration (ML-Denoiser)](Kits/FidelityFX/docs/techniques/denoising.md) 1.1.0 | [FidelityFX Denoiser sample](docs/samples/denoiser.md) | [FSR™ Ray Regeneration](https://gpuopen.com/amd-fsr-rayregeneration/) | Offers a machine learning-based solution for denoising. |
+| [FSR™ Radiance Caching (Preview)](Kits/FidelityFX/docs/techniques/radiance-cache.md) | [FidelityFX NRC (Preview) sample](docs/samples/radiance-cache.md) | [FSR™ Radiance Caching (Preview)](https://gpuopen.com/amd-fsr-radiancecaching/) | Offers a machine learning-based solution for path tracing result caching. |
 
 <h2>Further information</h2>
 
 
 - [What's new in AMD FSR™ SDK](Kits/FidelityFX/docs/whats-new/index.md)
-  - [FSR™ SDK 2.1.0](Kits/FidelityFX/docs/whats-new/index.md)
+  - [FSR™ SDK 2.2.0](Kits/FidelityFX/docs/whats-new/index.md)
+  - [FidelityFX™ SDK 2.1.0](Kits/FidelityFX/docs/whats-new/version_2_1_0.md)
   - [FidelityFX™ SDK 2.0.0](Kits/FidelityFX/docs/whats-new/version_2_0_0.md)
   - [FidelityFX™ SDK 1.1.4](Kits/FidelityFX/docs/whats-new/version_1_1_4.md)
   - [FidelityFX™ SDK 1.1.3](Kits/FidelityFX/docs/whats-new/version_1_1_3.md)
@@ -44,7 +45,7 @@ The FSR™ SDK includes:
 | AMD FSR™ SDK Sample | API / Configuration | Problem Description |
 | --- | --- | --- |
 | All FSR™ SDK Samples | All APIs / All Configs | Windows path length restrictions may cause compile issues. It is recommended to place the SDK close to the root of a drive or use subst or a mklink to shorten the path. |
-| All FSR™ SDK Samples | Vulkan / All Configs | Vulkan is currently not supported in SDK 2.1 |
+| All FSR™ SDK Samples | Vulkan / All Configs | Vulkan is currently not supported in SDK 2.2 |
 
 <h2>Open source</h2>
 
@@ -64,4 +65,4 @@ Microsoft is a registered trademark of Microsoft Corporation in the US and other
 
 Windows is a registered trademark of Microsoft Corporation in the US and other jurisdictions.
 
-© 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
+© 2022-2026 Advanced Micro Devices, Inc. All rights reserved.

@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -68,19 +68,20 @@ float GetSoftShadowFactor(RaytracingAccelerationStructure rtas, LightInformation
     }
     else if (lightInfo.Type == 1 /*LightType::Spot*/ || lightInfo.Type == 2 /*LightType::Point*/)
     {
+        float3 lightPos = lightInfo.PosDepthBias.xyz;
+        float3 toLight = lightPos - worldPosition;
+        float distanceToLight = length(toLight);
+        toLight = normalize(toLight);
+        
+        float3 perpL = cross(toLight, float3(0.0f, 1.0f, 0.0f));
+        perpL = (all(perpL == 0.0f)) ? 1.0f : perpL;
+
+        float3 toLightEdge = normalize((lightPos + perpL * lightSourceRadius) - worldPosition);
+        float cosHalfAngle = saturate(dot(toLight, toLightEdge));
+        
         for (int rayIdx = 0; rayIdx < numSamples; ++rayIdx)
         {
-            float3 lightPos = lightInfo.PosDepthBias.xyz;
-            float3 toLight = lightPos - worldPosition;
-            float distanceToLight = length(toLight);
-            toLight = normalize(toLight);
-            
-            float3 perpL = cross(toLight, float3(0.0f, 1.0f, 0.0f));
-            perpL = (all(perpL == 0.0f)) ? 1.0f : perpL;
-
-            float3 toLightEdge = normalize((lightPos + perpL * lightSourceRadius) - worldPosition);
-            float coneAngle = acos(dot(toLight, toLightEdge)) * 2.0f;
-            float3 rayDirection = SampleCone(rngState, toLight, coneAngle);
+            float3 rayDirection = SampleCone(rngState, toLight, cosHalfAngle);
             shadowFactor += TraceShadowRay(rtas, rayOrigin, rayDirection, 0.01f, distanceToLight) * sampleWeight;
         }
     }
@@ -135,7 +136,7 @@ TraceRayHitResult TraceRay(RaytracingAccelerationStructure rtas, in TraceRayDesc
         hitInfo.geometryIndex = rayQuery.CommittedGeometryIndex();
         hitInfo.triangleId = rayQuery.CommittedPrimitiveIndex();
         hitInfo.barycentrics = rayQuery.CommittedTriangleBarycentrics();
-        hitInfo.objectToWorld = float3x3(rayQuery.CommittedObjectToWorld3x4()[0].xyz, rayQuery.CommittedObjectToWorld3x4()[1].xyz, rayQuery.CommittedObjectToWorld3x4()[2].xyz);
+        hitInfo.objectToWorld = rayQuery.CommittedObjectToWorld3x4();
         hitInfo.isFrontFace = rayQuery.CommittedTriangleFrontFace();
         hitInfo.rayT = rayQuery.CommittedRayT();
         
@@ -156,9 +157,9 @@ SplitShadingResult Shade(float3 pointToLight, MaterialInfo materialInfo, float3 
     AngularInfo angularInfo = GetAngularInfo(pointToLight, normal, view);
 
     SplitShadingResult result = (SplitShadingResult)0;
-    if (angularInfo.NdotL > 0.0 || angularInfo.NdotV > 0.0)
+    if (angularInfo.NdotL > 0.0 && angularInfo.NdotV > 0.0)
     {
-        result.diffuse = angularInfo.NdotL;
+        result.diffuse = M_ONE_OVER_PI * angularInfo.NdotL;
         
         float Vis = VisibilityOcclusion_SmithJointGGX(materialInfo, angularInfo);
         float D = MicrofacetDistribution_Trowbridge(materialInfo, angularInfo);

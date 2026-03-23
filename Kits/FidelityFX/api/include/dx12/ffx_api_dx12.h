@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -209,6 +209,10 @@ static inline FfxApiResource ffxApiGetResourceDX12(ID3D12Resource* pRes, uint32_
     if (!pRes) return res;
 
     D3D12_RESOURCE_DESC desc = pRes->GetDesc();
+    if (desc.Dimension == D3D12_RESOURCE_DIMENSION_UNKNOWN) {
+        return res;
+    }
+
     if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
         res.description.flags = FFX_API_RESOURCE_FLAGS_NONE;
@@ -255,6 +259,8 @@ static inline FfxApiResource ffxApiGetResourceDX12(ID3D12Resource* pRes, uint32_
         case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
             res.description.type = FFX_API_RESOURCE_TYPE_TEXTURE3D;
             break;
+        default:
+            break;  // D3D12_RESOURCE_DIMENSION_BUFFER and D3D12_RESOURCE_DIMENSION_UNKNOWN are handled above. 
         }
     }
 

@@ -4,5 +4,5 @@
 
 Please refer to the latest online version of the FSR™ naming guidelines.
 
-https://gpuopen.com/fidelityfx-naming-guidelines/
+https://gpuopen.com/amd-fsr-naming-guidelines/
 

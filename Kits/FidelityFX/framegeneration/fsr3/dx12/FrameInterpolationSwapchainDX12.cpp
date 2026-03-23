@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -24,10 +24,11 @@
 #include <initguid.h>
 #include "FrameInterpolationSwapchainDX12.h"
 
-#include "../../../backend/dx12/ffx_dx12.h"
 #include "FrameInterpolationSwapchainDX12_UiComposition.h"
 #include "FrameInterpolationSwapchainDX12_DebugPacing.h"
 #include "antilag2/ffx_antilag2_dx12.h"
+
+#include "../../../api/internal/ffx_backends.h"
 
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
@@ -440,21 +441,21 @@ FfxErrorCode ffxFrameInterpolationSwapchainGetGpuMemoryUsageDX12V2(FfxDevice dev
     for (uint32_t i = 0; i < backBufferCount; i++)
     {
         replacementSwapBuffersCreateResourceDescs[i] = { FfxResourceHeapPlacementInfo::InitDefault(), { FFX_API_RESOURCE_TYPE_TEXTURE2D, (uint32_t)backbufferFormat, displaySize->width, displaySize->height, 1, 1, FFX_API_RESOURCE_FLAGS_NONE, FFX_API_RESOURCE_USAGE_UAV }, FFX_API_RESOURCE_STATE_UNORDERED_ACCESS, L"AMD FSR Replacement BackBuffer", 0, {FFX_RESOURCE_INIT_DATA_TYPE_UNINITIALIZED} };
-        FFX_VALIDATE(ffxGetResourceSizeFromDescriptionDX12(device, &replacementSwapBuffersCreateResourceDescs[i], &size));
+        FFX_VALIDATE(GetResourceSizeFromDescription(device, &replacementSwapBuffersCreateResourceDescs[i], &size));
         vramUsage->totalUsageInBytes += size;
     }
 
     for (uint32_t i = 0; i < FFX_FRAME_INTERPOLATION_SWAP_CHAIN_INTERPOLATION_OUTPUTS_COUNT; i ++)
     {
         interpolationOutputsCreateResourceDescs[i] = { FfxResourceHeapPlacementInfo::InitDefault(), { FFX_API_RESOURCE_TYPE_TEXTURE2D, (uint32_t)backbufferFormat, displaySize->width, displaySize->height, 1, 1, FFX_API_RESOURCE_FLAGS_NONE, FFX_API_RESOURCE_USAGE_UAV }, FFX_API_RESOURCE_STATE_UNORDERED_ACCESS, L"AMD FSR Interpolation Output", 0, {FFX_RESOURCE_INIT_DATA_TYPE_UNINITIALIZED} };
-        FFX_VALIDATE(ffxGetResourceSizeFromDescriptionDX12(device, &interpolationOutputsCreateResourceDescs[i], &size));
+        FFX_VALIDATE(GetResourceSizeFromDescription(device, &interpolationOutputsCreateResourceDescs[i], &size));
         vramUsage->totalUsageInBytes += size;
     }
 
     if (uiResourceFormat != FFX_API_SURFACE_FORMAT_UNKNOWN && flags & FFX_FRAMEGENERATION_UI_COMPOSITION_FLAG_ENABLE_INTERNAL_UI_DOUBLE_BUFFERING)
     {
         uiReplacementBufferCreateResourceDesc = { FfxResourceHeapPlacementInfo::InitDefault(), { FFX_API_RESOURCE_TYPE_TEXTURE2D, (uint32_t)uiResourceFormat, uiResourceSize->width, uiResourceSize->height, 1, 1, FFX_API_RESOURCE_FLAGS_NONE, FFX_API_RESOURCE_USAGE_UAV }, FFX_API_RESOURCE_STATE_UNORDERED_ACCESS, L"AMD FSR UI Replacement Buffer", 0, {FFX_RESOURCE_INIT_DATA_TYPE_UNINITIALIZED} };
-        FFX_VALIDATE(ffxGetResourceSizeFromDescriptionDX12(device, &uiReplacementBufferCreateResourceDesc, &size));
+        FFX_VALIDATE(GetResourceSizeFromDescription(device, &uiReplacementBufferCreateResourceDesc, &size));
         vramUsage->totalUsageInBytes += size;
     }
     return FFX_OK;
@@ -914,6 +915,108 @@ DWORD WINAPI interpolationThread(LPVOID param)
     return 0;
 }
 
+DWORD WINAPI waitableSignalThread(LPVOID param)
+{
+    FrameinterpolationPresentInfoExt* presenter = static_cast<FrameinterpolationPresentInfoExt*>(param);
+    while (!presenter->shutdown)
+    {
+        SignalObjectAndWait(presenter->waitableObjectSemaphoreHandle, presenter->frameDoneEventHandle, INFINITE, false);
+    }
+    return 0;
+}
+
+template<typename PresentType>
+HANDLE CreateReplaceableObjectHandle(PresentType* presenter, UINT latency, UINT bufferCount)
+{
+    return CreateEvent(0, false, TRUE, nullptr);
+}
+
+template<>
+HANDLE CreateReplaceableObjectHandle<FrameinterpolationPresentInfoExt>(FrameinterpolationPresentInfoExt* presenter, UINT latency, UINT bufferCount)
+{
+    presenter->frameDoneEventHandle          = CreateEvent(0, false, TRUE, nullptr);
+    presenter->waitableObjectSemaphoreHandle = CreateSemaphore(0, latency, bufferCount, nullptr);
+
+    if (presenter->waitableThreadHandle == NULL) {
+        presenter->shutdown             = false;
+        presenter->waitableThreadHandle = CreateThread(nullptr, 0, &waitableSignalThread, reinterpret_cast<void*>(presenter), 0, nullptr);
+
+        FFX_ASSERT(presenter->waitableThreadHandle != NULL);
+        if (presenter->waitableThreadHandle != 0) {
+            SetThreadPriority(presenter->waitableThreadHandle, THREAD_PRIORITY_HIGHEST);
+            SetThreadDescription(presenter->waitableThreadHandle, L"AMD FSR WaitableObject tracking Thread");
+        }
+    }
+
+    return presenter->waitableObjectSemaphoreHandle;
+}
+
+template<typename PresentType>
+bool ReleaseReplaceableObjectHandle(PresentType*)
+{
+    // return false to indicate swapchain class should close the handle
+    return false;
+}
+
+template<>
+bool ReleaseReplaceableObjectHandle<FrameinterpolationPresentInfoExt>(FrameinterpolationPresentInfoExt* presenter)
+{
+    if (presenter->waitableThreadHandle != NULL) {
+
+        // prepare present CPU thread for shutdown
+        presenter->shutdown = true;
+        // signal event to allow thread to finish
+        SetEvent(presenter->frameDoneEventHandle);
+        // wait for thread function to finish
+        WaitForSingleObject(presenter->waitableThreadHandle, INFINITE);
+        // close thread
+        SafeCloseHandle(presenter->waitableThreadHandle);
+    }
+
+    // close event&semaphore handles
+    SafeCloseHandle(presenter->waitableObjectSemaphoreHandle);
+    SafeCloseHandle(presenter->frameDoneEventHandle);
+
+    return true;
+}
+
+template<typename PresentType>
+void UpdateFrameLatencyWaitableObject(PresentType*, INT)
+{
+}
+
+template<>
+void UpdateFrameLatencyWaitableObject<FrameinterpolationPresentInfoExt>(FrameinterpolationPresentInfoExt* presenter, INT delta)
+{
+    // adjust semaphorecount to reflect new gameMaximumFrameLatency
+    if (delta)
+    {
+        ReleaseSemaphore(presenter->waitableObjectSemaphoreHandle, delta, NULL);
+    }
+
+    for (INT i = 0; i < -delta; ++i)
+    {
+        WaitForSingleObject(presenter->waitableObjectSemaphoreHandle, INFINITE);
+    }
+}
+
+template<typename PresentType>
+void SignalFrameLatencyWaitableObject(PresentType*, ID3D12Fence* fence, UINT64 framesSentForPresentation, HANDLE waitableObjectHandle)
+{
+    if (waitableObjectHandle)
+    {
+        FFX_ASSERT(SUCCEEDED(fence->SetEventOnCompletion(framesSentForPresentation, waitableObjectHandle)));
+    }
+}
+
+template<>
+void SignalFrameLatencyWaitableObject<FrameinterpolationPresentInfoExt>(FrameinterpolationPresentInfoExt* presenter, ID3D12Fence* fence, UINT64 framesSentForPresentation, HANDLE)
+{
+    if (presenter->frameDoneEventHandle) {
+        FFX_ASSERT(SUCCEEDED(fence->SetEventOnCompletion(framesSentForPresentation, presenter->frameDoneEventHandle)));
+    }
+}
+
 template<typename ParentType, typename PresentType, typename ConfigType, typename PresentCallbackType, size_t NumBuffers>
 bool TFrameInterpolationSwapChainDX12<ParentType, PresentType, ConfigType, PresentCallbackType, NumBuffers>::verifyBackbufferDuplicateResources()
 {
@@ -1099,9 +1202,8 @@ HRESULT TFrameInterpolationSwapChainDX12<ParentType, PresentType, ConfigType, Pr
         presentInfo.device->CreateFence(framesSentForPresentation, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&presentInfo.compositionFenceCPU));
         presentInfo.compositionFenceCPU->SetName(L"AMD FSR CompositionFence CPU");
 
-        if ((desc->Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) == DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT)
-        {
-            replacementFrameLatencyWaitableObjectHandle = CreateEvent(0, FALSE, TRUE, nullptr);
+        if ((desc->Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) == DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) {
+            replacementFrameLatencyWaitableObjectHandle = CreateReplaceableObjectHandle(&presentInfo, gameMaximumFrameLatency, gameBufferCount);
         }
 
         // Create interpolation queue
@@ -1215,6 +1317,15 @@ HRESULT TFrameInterpolationSwapChainDX12<ParentType, PresentType, ConfigType, Pr
         DeleteCriticalSection(&criticalSection);
         DeleteCriticalSection(&criticalSectionUpdateConfig);
         DeleteCriticalSection(&presentInfo.criticalSectionScheduledFrame);
+
+        if( ReleaseReplaceableObjectHandle(&presentInfo) )
+        {
+            replacementFrameLatencyWaitableObjectHandle = 0;
+        }
+        else
+        {
+            SafeCloseHandle(replacementFrameLatencyWaitableObjectHandle);
+        }
 
         std::ignore = SafeRelease(presentInfo.device);
     }
@@ -1788,7 +1899,8 @@ void TFrameInterpolationSwapChainDX12<ParentType, PresentType, ConfigType, Prese
     *pRealFrame = backbuffer;
 
     // interpolation queue must wait for output resource to become available
-    presentInfo.interpolationQueue->Wait(presentInfo.compositionFenceGPU, interpolationOutputs[interpolationBufferIndex].availabilityFenceValue);
+    if (interpolationOutputs[interpolationBufferIndex].availabilityFenceValue != 0)
+        presentInfo.interpolationQueue->Wait(presentInfo.compositionFenceGPU, interpolationOutputs[interpolationBufferIndex].availabilityFenceValue);
 
     auto pRegisteredCommandList = registeredInterpolationCommandLists[currentBackBufferIndex];
     if (pRegisteredCommandList != nullptr)
@@ -1909,12 +2021,6 @@ void TFrameInterpolationSwapChainDX12<ParentType, PresentType, ConfigType, Prese
 
     // hold the replacement object back until previous frame or interpolated is presented
     nextPresentWaitValue = entry.numFramesSentForPresentationBase;
-    
-    if (replacementFrameLatencyWaitableObjectHandle)
-    {
-        UINT64 frameLatencyObjectWaitValue = (entry.numFramesSentForPresentationBase - 1) * (entry.numFramesSentForPresentationBase > 0);
-        FFX_ASSERT(SUCCEEDED(presentInfo.presentFence->SetEventOnCompletion(frameLatencyObjectWaitValue, replacementFrameLatencyWaitableObjectHandle)));
-    }
 
 }
 
@@ -2063,7 +2169,8 @@ HRESULT STDMETHODCALLTYPE TFrameInterpolationSwapChainDX12<ParentType, PresentTy
 
     // Ensure presenter thread has signaled before applying any wait to the game queue
     waitForFenceValue(presentInfo.compositionFenceCPU, previousFramesSentForPresentation);
-    presentInfo.gameQueue->Wait(presentInfo.compositionFenceGPU, previousFramesSentForPresentation);
+    if (previousFramesSentForPresentation != 0)
+        presentInfo.gameQueue->Wait(presentInfo.compositionFenceGPU, previousFramesSentForPresentation);
 
     // Verify integrity of internal Ui resource
     if (verifyUiDuplicateResource())
@@ -2080,6 +2187,8 @@ HRESULT STDMETHODCALLTYPE TFrameInterpolationSwapChainDX12<ParentType, PresentTy
         WaitForSingleObject(presentInfo.interpolationEvent, INFINITE);
 
         presentInterpolated(SyncInterval, Flags);
+
+        SignalFrameLatencyWaitableObject(&presentInfo, presentInfo.compositionFenceGPU, framesSentForPresentation, replacementFrameLatencyWaitableObjectHandle);
     }
     else
     {
@@ -2090,12 +2199,7 @@ HRESULT STDMETHODCALLTYPE TFrameInterpolationSwapChainDX12<ParentType, PresentTy
         FFX_ASSERT(presentCallback != nullptr);
         presentWithUiComposition(SyncInterval, Flags);
 
-        if (replacementFrameLatencyWaitableObjectHandle)
-        {
-            // respect game provided latency settings
-            UINT64 frameLatencyObjectWaitValue = (framesSentForPresentation - gameMaximumFrameLatency) * (framesSentForPresentation >= gameMaximumFrameLatency);
-            FFX_ASSERT(SUCCEEDED(presentInfo.presentFence->SetEventOnCompletion(frameLatencyObjectWaitValue, replacementFrameLatencyWaitableObjectHandle)));
-        }
+        SignalFrameLatencyWaitableObject(&presentInfo, presentInfo.presentFence, framesSentForPresentation, replacementFrameLatencyWaitableObjectHandle);
     }
 
     replacementSwapBuffers[currentBackBufferIndex].availabilityFenceValue = framesSentForPresentation;
@@ -2207,7 +2311,9 @@ HRESULT STDMETHODCALLTYPE TFrameInterpolationSwapChainDX12<ParentType, PresentTy
     if (ppOutput)
     {
         *ppOutput = getMostRelevantOutputFromSwapChain(real());
-        hr        = S_OK;
+        if (*ppOutput) {
+            hr = S_OK;
+        }
     }
     
     return hr;
@@ -2319,9 +2425,9 @@ HRESULT STDMETHODCALLTYPE TFrameInterpolationSwapChainDX12<ParentType, PresentTy
 template<typename ParentType, typename PresentType, typename ConfigType, typename PresentCallbackType, size_t NumBuffers>
 HRESULT STDMETHODCALLTYPE TFrameInterpolationSwapChainDX12<ParentType, PresentType, ConfigType, PresentCallbackType, NumBuffers>::SetMaximumFrameLatency(UINT MaxLatency)
 {
-    // store value, so correct value is returned if game asks for it
-    gameMaximumFrameLatency = MaxLatency;
-
+    INT newMaxLatency = std::min(MaxLatency, gameBufferCount);
+    UpdateFrameLatencyWaitableObject(&presentInfo, newMaxLatency - gameMaximumFrameLatency);
+    gameMaximumFrameLatency = newMaxLatency;
     return S_OK;
 }
 

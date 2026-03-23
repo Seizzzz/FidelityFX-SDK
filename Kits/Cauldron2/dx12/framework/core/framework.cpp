@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -200,8 +200,6 @@ namespace cauldron
         }
 
         CauldronCritical(L"There is a loop in Config RenderResourceMappings");
-
-        return nullptr;
     }
 
     RenderResourceInformation CauldronConfig::GetRenderResourceInformation(const wchar_t* resourceName) const
@@ -270,7 +268,7 @@ namespace cauldron
         if(m_Config.EnablePixCapture)
         {
             Log::Write(LOGLEVEL_TRACE, L"Initializing WinPixGpuCapturer.");
-            HMODULE mod = ::LoadLibraryW(L"WinPixGpuCapturer.dll");
+            HMODULE mod = ::PIXLoadLatestWinPixGpuCapturerLibrary();
             assert(mod);
         }
 
@@ -2113,7 +2111,6 @@ namespace cauldron
                 return pRM;
         }
         CauldronCritical(L"Could not find render module %ls", StringToWString(name).c_str());
-        return nullptr;
     }
 
     //////////////////////////////////////////////////////////////////////////

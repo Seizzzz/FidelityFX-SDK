@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -158,6 +158,9 @@ typedef TFrameInterpolationPresentInfo<32, FfxApiResource, FrameInterpolationPac
 // This type can be extended without breaking the ABI
 struct FrameinterpolationPresentInfoExt : public TFrameInterpolationPresentInfo<32, FfxApiResource, FrameInterpolationPacingDataExt>
 {
+    HANDLE waitableObjectSemaphoreHandle = 0;  // will be passed to app as waitableObject
+    HANDLE frameDoneEventHandle          = 0;  // event to notify the semaphore
+    HANDLE waitableThreadHandle          = 0;  // thread to update semaphore when event gets triggered by GPU
 };
 
 typedef struct ReplacementResource

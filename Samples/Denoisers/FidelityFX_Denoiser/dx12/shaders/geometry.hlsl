@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -122,7 +122,7 @@ void FetchVertexAttributes(StructuredBuffer<float> vertexBuffers[], in PTSurface
     }
 }
 
-LocalBasis FetchLocalBasis(StructuredBuffer<float> vertexBuffers[], in PTSurfaceInfo surfaceInfo, float3x3 objectToWorld, in uint3 face3, in float2 barycentrics, bool isFrontFace)
+LocalBasis FetchLocalBasis(StructuredBuffer<float> vertexBuffers[], in PTSurfaceInfo surfaceInfo, float3x4 objectToWorld, in uint3 face3, in float2 barycentrics, bool isFrontFace)
 {
     const float3 fullBary = float3(1.0f - barycentrics.x - barycentrics.y, barycentrics.xy);
 
@@ -133,6 +133,7 @@ LocalBasis FetchLocalBasis(StructuredBuffer<float> vertexBuffers[], in PTSurface
     for (uint i = 0; i < 3; ++i)
     {
         FetchVertexAttributes(vertexBuffers, surfaceInfo, face3[i], positions[i], uvs[i], normals[i], tangent[i]);
+        positions[i] = mul(objectToWorld, float4(positions[i], 1.0f));
     }
 
     const float3 uv0 = float3(uvs[0], 0.0f);
@@ -141,21 +142,18 @@ LocalBasis FetchLocalBasis(StructuredBuffer<float> vertexBuffers[], in PTSurface
 
     LocalBasis localBasis = (LocalBasis) 0;
     localBasis.uv = uvs[0] * fullBary.x + uvs[1] * fullBary.y + uvs[2] * fullBary.z;
-    localBasis.uvArea = abs(cross(uv1 - uv0, uv2 - uv0).z);
+    localBasis.uvArea = abs(cross(uv1 - uv0, uv2 - uv0).z) * 0.5f;
     localBasis.normal = normals[0] * fullBary.x + normals[1] * fullBary.y + normals[2] * fullBary.z;
     localBasis.triangleArea = length(cross(positions[1] - positions[0], positions[2] - positions[0])) * 0.5f;
     localBasis.tangent = tangent[0] * fullBary.x + tangent[1] * fullBary.y + tangent[2] * fullBary.z;
 
-    localBasis.normal = mul(objectToWorld, localBasis.normal);
-    localBasis.tangent.xyz = mul(objectToWorld, localBasis.tangent.xyz);
+    localBasis.normal      = normalize(mul(objectToWorld, float4(localBasis.normal,      0.0f)));
+    localBasis.tangent.xyz = normalize(mul(objectToWorld, float4(localBasis.tangent.xyz, 0.0f)));
 
     if (!isFrontFace)
     {
         localBasis.normal = -localBasis.normal;
     }
-
-    localBasis.normal = normalize(localBasis.normal);
-    localBasis.tangent.xyz = normalize(localBasis.tangent.xyz);
     
     return localBasis;
 }

@@ -6,12 +6,12 @@ The FSR™ SDK is a collection of heavily optimized effects (headers and DLLs) t
 
 - [FidelityFX Super Resolution 2.3.4](../../Kits/FidelityFX/docs/techniques/super-resolution-temporal.md)
 - [FidelityFX Super Resolution 3.1.5](../../Kits/FidelityFX/docs/techniques/super-resolution-upscaler.md)
-- [FSR™ Upscaling 4.0.3](../../Kits/FidelityFX/docs/techniques/super-resolution-ml.md)
-- [FidelityFX Frame Generation 3.1.5](../../Kits/FidelityFX/docs/techniques/frame-interpolation.md)
-- [FidelityFX Frame Generation Swapchain 3.1.5](../../Kits/FidelityFX/docs/techniques/frame-interpolation-swap-chain.md)
+- [FSR™ Upscaling 4.1.0](../../Kits/FidelityFX/docs/techniques/super-resolution-ml.md)
+- [FidelityFX Frame Generation 3.1.6](../../Kits/FidelityFX/docs/techniques/frame-interpolation.md)
+- [FidelityFX Frame Generation Swapchain 3.1.6](../../Kits/FidelityFX/docs/techniques/frame-interpolation-swap-chain.md)
 - [FSR™ Frame Generation 4.0.0](../../Kits/FidelityFX/docs/techniques/frame-interpolation-ml.md)
 - [FSR™ Frame Generation Swapchain 4.0.0](../../Kits/FidelityFX/docs/techniques/frame-interpolation-swap-chain.md)
-- [FSR™ Ray Regeneration 1.0.0](../../Kits/FidelityFX/docs/techniques/denoising.md)
+- [FSR™ Ray Regeneration 1.1.0](../../Kits/FidelityFX/docs/techniques/denoising.md)
 - [FSR™ Radiance Caching (Technical Preview)](../../Kits/FidelityFX/docs/techniques/radiance-cache.md)
 
 <h2>Supported ecosystems</h2>

@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -24,10 +24,12 @@
 #include "pathtracingrendermodule.h"
 #include "denoiserrendermodule.h"
 #include "fsrapirendermodule.h"
+#include "debugoverlayrendermodule.h"
 
 #include <cauldron2/dx12/framework/misc/fileio.h>
 #include <cauldron2/dx12/rendermodules/rendermoduleregistry.h>
 #include <cauldron2/dx12/framework/render/rendermodule.h>
+#include <cauldron2/dx12/framework/core/inputmanager.h>
 
 using namespace cauldron;
 
@@ -77,6 +79,7 @@ void Sample::RegisterSampleModules()
     RenderModuleFactory::RegisterModule<PathTracingRenderModule>("PathTracingRenderModule");
     RenderModuleFactory::RegisterModule<DenoiserRenderModule>("DenoiserRenderModule");
     RenderModuleFactory::RegisterModule<FSRRenderModule>("FSRApiRenderModule");
+    RenderModuleFactory::RegisterModule<DebugOverlayRenderModule>("DebugOverlayRenderModule");
 }
 
 // Sample initialization point
@@ -88,6 +91,98 @@ void Sample::DoSampleInit()
 // This is called prior to components/render module updates
 void Sample::DoSampleUpdates(double deltaTime)
 {
+    const InputState& inputState = GetInputManager()->GetInputState();
+    FSRApiRenderModule* pFSR = dynamic_cast<FSRApiRenderModule*>(GetFramework()->GetRenderModule("FSRApiRenderModule"));
+    DenoiserRenderModule* pDenoiser = dynamic_cast<DenoiserRenderModule*>(GetFramework()->GetRenderModule("DenoiserRenderModule"));
+
+    if (pFSR)
+    {
+        // Upscale method hotkeys
+        constexpr int32_t kUpscalerNative = 0;
+        constexpr int32_t kUpscalerFSRAPI = 1;
+
+        // Scale preset hotkeys
+        constexpr int32_t kScalePresetNativeAA = 0;
+        constexpr int32_t kScalePresetQuality = 1;
+        constexpr int32_t kScalePresetBalanced = 2;
+        constexpr int32_t kScalePresetPerformance = 3;
+        constexpr int32_t kScalePresetUltraPerformance = 4;
+        constexpr int32_t kScalePresetCount = 5;
+
+        // Track FSR state
+        static bool fsrEnabled = true;
+        static int32_t currentPreset = kScalePresetPerformance; // Persistent preset state
+
+        // F5: Toggle FSR method on/off
+         // When enabling: set to FSR method with Native AA preset
+         // When disabling: set to Native method
+        if (inputState.GetKeyUpState(Key_F5))
+        {
+            fsrEnabled = !fsrEnabled;
+            if (fsrEnabled)
+            {
+                // Enable FSR method first, then set to Native AA preset
+                pFSR->SetUpscaleMethodHotkey(kUpscalerFSRAPI);
+                currentPreset = kScalePresetNativeAA;
+                pFSR->SetScalePresetHotkey(currentPreset);
+            }
+            else
+            {
+                // Disable FSR, switch to Native method
+                pFSR->SetUpscaleMethodHotkey(kUpscalerNative);
+            }
+        }
+
+        // F6: Cycle through scale presets
+        // If Native method is active: enable FSR method and jump to Quality preset
+        // If FSR method is active: cycle through all presets (Native AA -> Quality -> Balanced -> Performance -> Ultra Performance -> Native AA)
+        if (inputState.GetKeyUpState(Key_F6))
+        {
+            if (!fsrEnabled)
+            {
+                // Currently using Native method, enable FSR first then jump to Quality preset
+                pFSR->SetUpscaleMethodHotkey(kUpscalerFSRAPI);
+                fsrEnabled = true;
+                currentPreset = kScalePresetQuality;
+                pFSR->SetScalePresetHotkey(currentPreset);
+            }
+            else
+            {
+                // FSR is already enabled, cycle to next preset
+                currentPreset = (currentPreset + 1) % kScalePresetCount;
+                pFSR->SetScalePresetHotkey(currentPreset);
+            }
+        }
+    }
+
+    if (pDenoiser)
+    {
+        // F7: Cycle through denoiser modes (4 signals -> 2 signals -> 1 signal -> back to 4 signals)
+        if (inputState.GetKeyUpState(Key_F7))
+        {
+            static int32_t currentMode = static_cast<int32_t>(FFX_DENOISER_MODE_4_SIGNALS); // Start at 4 signals (default)
+            currentMode = (currentMode + 1) % 3; // Cycle through 0, 1, 2
+            pDenoiser->SetDenoiserModeHotkey(static_cast<FfxApiDenoiserMode>(currentMode));
+        }
+
+        // F8: Toggle dominant light visibility denoising
+        if (inputState.GetKeyUpState(Key_F8))
+        {
+            pDenoiser->ToggleDominantLightVisibilityHotkey();
+        }
+
+        // F9: Cycle through view modes
+        if (inputState.GetKeyUpState(Key_F9))
+        {
+            pDenoiser->CycleViewModeHotkey();
+        }
+
+        // F10: Cycle through RGBA channel combinations
+        if (inputState.GetKeyUpState(Key_F10))
+        {
+            pDenoiser->CycleRGBAChannelsHotkey();
+        }
+    }
 }
 
 // Handle any changes that need to occur due to applicate resize

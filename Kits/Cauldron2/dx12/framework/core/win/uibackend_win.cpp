@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -228,14 +228,14 @@ namespace cauldron
                     ImGui::EndTabItem();
                 }
 
-                if (ImGui::BeginTabItem("Anti-Lag 2"))
+                if (ImGui::BeginTabItem("FSR Latency Reduction 2.0"))
                 {
                     bool enabled = GetFramework()->GetDevice()->GetAntiLag2Enabled();
 
                     if (!GetFramework()->GetDevice()->GetAntiLag2FeatureSupported())
                         ImGui::BeginDisabled();
 
-                    if (ImGui::Checkbox("Anti-Lag 2 Enabled", &enabled))
+                    if (ImGui::Checkbox("FSR Latency Reduction 2.0 Enabled", &enabled))
                     {
                         GetFramework()->GetDevice()->SetAntiLag2Enabled(enabled);
                     }
@@ -490,6 +490,18 @@ namespace cauldron
                 ImGui::SameLine();
                 if (ImGui::Button(s_ShowGPUTimes ? "gpu to cpu time" : "cpu to gpu time"))
                     s_ShowGPUTimes = !s_ShowGPUTimes;
+                ImGui::SameLine();
+                if (ImGui::Button("Reset"))
+                {
+                    s_CPUTotals.clear();
+                    s_GPUTotals.clear();
+                    s_CPUFrameTotals = {};
+                    s_GPUFrameTotals = {};
+                    s_NumGatheredFrames = {};
+
+                    s_HighestRecentCPUTime = {};
+                    s_HighestRecentGPUTime = {};
+                }
 
                 // Leave a gap
                 ImGui::Spacing();
@@ -817,7 +829,15 @@ namespace cauldron
 
     void UIText::BuildUI()
     {
-        ImGui::Text(GetDesc());
+        if (m_Color.has_value())
+        {
+            const ImVec4 color = { m_Color->getX(), m_Color->getY(), m_Color->getZ(), m_Color->getW() };
+            ImGui::TextColored(color, GetDesc());
+        }
+        else
+        {
+            ImGui::Text(GetDesc());
+        }
     }
 
     void UIButton::BuildUI()

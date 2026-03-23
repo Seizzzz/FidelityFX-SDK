@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -144,7 +144,7 @@ void MagnifierCS(uint3 dtID : SV_DispatchThreadID)
     float2 currentToCenter = uv - uvMagnifiedArea;
     float2 centerToCenterLine = uvMagnifierOnScreen - uvMagnifiedArea;
 
-    // coorect for aspect ration
+    // correct for aspect ratio
     if (imageSize.x > imageSize.y)
     {
         currentToCenter.x *= aspectRatio;
@@ -152,8 +152,8 @@ void MagnifierCS(uint3 dtID : SV_DispatchThreadID)
     }
     else
     {
-        currentToCenter.y *= aspectRatio;
-        centerToCenterLine.y *= aspectRatio;
+        currentToCenter.y *= aspectRatioInv;
+        centerToCenterLine.y *= aspectRatioInv;
     }
 
     float centerToCenterLength = length(centerToCenterLine);
@@ -191,18 +191,47 @@ void MagnifierCS(uint3 dtID : SV_DispatchThreadID)
 
 //--------------------------------------------------------------------------------------
 // For ImGui Render
+
+//--------------------------------------------------------------------------------------
+// For ImGui Render
+//--------------------------------------------------------------------------------------
+
+float3 GammaToLinear(float3 color, float gamma)
+{
+    return pow(abs(color), gamma);
+}
+
+float3 SRGBtoLinear(float3 srgb)
+{
+    static const float mlow = 1.0f / 12.92f;
+    static const float mhigh = 1.0f / 1.055f;
+
+    const float3 low = srgb * mlow;
+    const float3 high = GammaToLinear((srgb + 0.055f) * mhigh, 2.4f);
+    const float3 mask = step(srgb, 0.04045f); // 1 where srgb <= 0.04045, else 0
+    return lerp(high, low, mask);
+}
+
 PS_INPUT uiVS(VS_INPUT input)
 {
+    // Convert to linear color + premultiply before rasterization.
+    float4 color = float4(SRGBtoLinear(input.col.rgb), input.col.a);
+    color.rgb *= color.a;
+    
     PS_INPUT output;
     output.pos = mul(ProjectionMatrix, float4(input.pos.xy, NEAR_DEPTH, 1.f));
-    output.col = input.col;
+    output.col = color;
+    output.col.rgb *= output.col.a;
     output.uv = input.uv;
     return output;
 }
 
 float4 uiPS(PS_INPUT input) : SV_Target
 {
-    float4 out_col = input.col * texture0.Sample(sampler0, input.uv);
+    float4 textureColor = texture0.Sample(sampler0, input.uv);
+    textureColor.rgb *= textureColor.a; // Texture should be premultiplied instead.
+    
+    float4 out_col = input.col * textureColor;
 
     switch (HDRCB.MonitorDisplayMode)
     {

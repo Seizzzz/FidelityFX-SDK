@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -58,7 +58,9 @@ uint GenerateRngState(uint x, uint y, uint seed)
 
 float RandomFloat01(inout uint state)
 {
-    return saturate(xxhash32(state) / float(uint(0xffffffff)));
+    state = xxhash32(state);
+    // IEEE-754: 2^-32 = 0x2F800000
+    return float(state) * asfloat(0x2F800000u);
 }
 
 #endif  // RANDOM_H

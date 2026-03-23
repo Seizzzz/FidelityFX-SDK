@@ -4,7 +4,7 @@
 
 ![alt text](media/super-resolution/fsr3-sample.jpg "A screenshot of the FSR™ sample.")
 
-This sample demonstrates the use of FSR™ Upscaling 4.0.3 (and 3.1.5 & 2.3.4) for upscaling and FSR™ Frame Generation 4.0.0 (and 3.1.6).
+This sample demonstrates the use of FSR™ Upscaling 4.1.0 (and 3.1.5 & 2.3.4) for upscaling and FSR™ Frame Generation 4.0.0 (and 3.1.6).
 
 For details on the underlying algorithms you can refer to the per-technique documentation for [FSR™ Super Resolution 4](../../Kits/FidelityFX/docs/techniques/super-resolution-ml.md) and [FSR™ Frame Generation 4](../../Kits/FidelityFX/docs/techniques/frame-interpolation-ml.md).
 

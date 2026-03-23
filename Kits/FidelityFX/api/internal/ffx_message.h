@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -38,6 +38,11 @@ extern "C" {
 /// Provides the ability to set a callback for print messages.
 ///
 /// @param [in] callback                The callback function that will receive assert messages.
+/// @param [in] debugLevel              The upper log level. For example:
+///                                     <c>FFX_API_CONFIGURE_GLOBALDEBUG_LEVEL_SILENCE</c>,
+///                                     <c>FFX_API_CONFIGURE_GLOBALDEBUG_LEVEL_ERRORS</c>,
+///                                     <c>FFX_API_CONFIGURE_GLOBALDEBUG_LEVEL_WARNINGS</c>, or
+///                                     <c>FFX_API_CONFIGURE_GLOBALDEBUG_LEVEL_VERBOSE</c>.
 /// 
 /// @ingroup Messages
 FFX_API void ffxSetPrintMessageCallback(ffxMessageCallback callback, uint32_t debugLevel);

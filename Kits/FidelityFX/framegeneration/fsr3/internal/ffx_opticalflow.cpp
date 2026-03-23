@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -48,10 +48,7 @@
 #include "ffx_opticalflow_private.h"
 #include "ffx_opticalflow_shaderblobs.h"
 
-
-#ifdef FFX_BACKEND_DX12
-#include "../../../backend/dx12/ffx_dx12.h"
-#endif // FFX_BACKEND_DX12
+#include "../../../api/internal/ffx_backends.h"
 
 typedef struct Binding
 {
@@ -484,7 +481,7 @@ static FfxErrorCode opticalflowCreate(FfxOpticalflowContext_Private* context, co
 
     // Check version info - make sure we are linked with the right backend version
     FfxVersionNumber version = context->contextDescription.backendInterface.fpGetSDKVersion(&context->contextDescription.backendInterface);
-    FFX_RETURN_ON_ERROR(version == FFX_SDK_MAKE_VERSION(2, 0, 0), FFX_ERROR_INVALID_VERSION);
+    FFX_RETURN_ON_ERROR(version == FFX_SDK_MAKE_VERSION(FFX_SDK_VERSION_MAJOR, FFX_SDK_VERSION_MINOR, FFX_SDK_VERSION_PATCH), FFX_ERROR_INVALID_VERSION);
 
     errorCode = context->contextDescription.backendInterface.fpCreateBackendContext(&context->contextDescription.backendInterface, FFX_EFFECT_OPTICALFLOW, nullptr, &context->effectContextId);
     FFX_RETURN_ON_ERROR(errorCode == FFX_OK, errorCode);
@@ -613,7 +610,7 @@ static void scheduleDispatch(FfxOpticalflowContext_Private* context, const FfxPi
     jobDescriptor.dimensions[0] = dispatchX;
     jobDescriptor.dimensions[1] = dispatchY;
     jobDescriptor.dimensions[2] = dispatchZ;
-    jobDescriptor.pipeline = *pipeline;
+    jobDescriptor.pipeline = pipeline;
 
     for (uint32_t currentRootConstantIndex = 0; currentRootConstantIndex < pipeline->constCount; ++currentRootConstantIndex) {
 #ifdef FFX_DEBUG
@@ -1083,9 +1080,8 @@ FFX_API FfxErrorCode ffxOpticalflowGetGpuMemoryUsage(FfxDevice device, FfxApiDim
     size_t resourceCount = sizeof(resources) / sizeof(resources[0]);
     for (size_t i = 0; i < resourceCount; ++i)
     {
-#ifdef FFX_BACKEND_DX12
-        FFX_VALIDATE(ffxGetResourceSizeFromDescriptionDX12(device, resources[i], &size));
-#endif // FFX_BACKEND_DX12
+        FFX_VALIDATE(GetResourceSizeFromDescription(device, resources[i], &size));
+
         pVramUsage->totalUsageInBytes += size;
         if (resources[i]->resourceDescription.flags & FFX_API_RESOURCE_FLAGS_ALIASABLE)
         {
@@ -1104,9 +1100,8 @@ FFX_API FfxErrorCode ffxOpticalflowGetGpuMemoryUsage(FfxDevice device, FfxApiDim
 
     for (size_t i = 0; i < sharedResourceCount; ++i)
     {
-#ifdef FFX_BACKEND_DX12
-        FFX_VALIDATE(ffxGetResourceSizeFromDescriptionDX12(device, sharedResources[i], &size));
-#endif // FFX_BACKEND_DX12
+        FFX_VALIDATE(GetResourceSizeFromDescription(device, sharedResources[i], &size));
+
         pVramUsage->totalUsageInBytes += size;
         if (sharedResources[i]->resourceDescription.flags & FFX_API_RESOURCE_FLAGS_ALIASABLE)
         {

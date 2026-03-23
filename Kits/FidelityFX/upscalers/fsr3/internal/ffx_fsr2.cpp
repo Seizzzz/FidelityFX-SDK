@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -41,6 +41,7 @@
 #define FFX_CPU
 #include "../../../api/internal/gpu/ffx_core.h"
 #include "../../../api/internal/ffx_object_management.h"
+#include "../../../api/internal/ffx_backends.h"
 #include "../include/gpu/fsr1/ffx_fsr1.h"
 #include "../include/gpu/spd/ffx_spd.h"
 #include "../include/gpu/fsr2/ffx_fsr2_callbacks_hlsl.h"
@@ -53,10 +54,6 @@ static const uint32_t FSR2_MAX_QUEUED_FRAMES = 16;
 
 #include "ffx_fsr2_private.h"
 #include "ffx_fsr2_shaderblobs.h"
-
-#ifdef FFX_BACKEND_DX12
-#include "../../../backend/dx12/ffx_dx12.h"
-#endif // FFX_BACKEND_DX12
 
 // lists to map shader resource bindpoint name to resource identifier
 typedef struct ResourceBinding
@@ -596,7 +593,7 @@ static FfxErrorCode fsr2Create(FfxFsr2Context_Private* context, const FfxFsr2Con
 
     // Check version info - make sure we are linked with the right backend version
     FfxVersionNumber version = context->contextDescription.backendInterface.fpGetSDKVersion(&context->contextDescription.backendInterface);
-    FFX_RETURN_ON_ERROR(version == FFX_SDK_MAKE_VERSION(2, 0, 0), FFX_ERROR_INVALID_VERSION);
+    FFX_RETURN_ON_ERROR(version == FFX_SDK_MAKE_VERSION(FFX_SDK_VERSION_MAJOR, FFX_SDK_VERSION_MINOR, FFX_SDK_VERSION_PATCH), FFX_ERROR_INVALID_VERSION);
 
     // Setup constant buffer sizes.
     context->constantBuffers[0].num32BitEntries = sizeof(Fsr2Constants) / sizeof(uint32_t);
@@ -813,7 +810,7 @@ static void scheduleDispatch(FfxFsr2Context_Private* context, const FfxFsr2Dispa
     dispatchJob.computeJobDescriptor.dimensions[0] = dispatchX;
     dispatchJob.computeJobDescriptor.dimensions[1] = dispatchY;
     dispatchJob.computeJobDescriptor.dimensions[2] = 1;
-    dispatchJob.computeJobDescriptor.pipeline      = *pipeline;
+    dispatchJob.computeJobDescriptor.pipeline      = pipeline;
 
     for (uint32_t currentRootConstantIndex = 0; currentRootConstantIndex < pipeline->constCount; ++currentRootConstantIndex) {
 #ifdef FFX_DEBUG
@@ -1215,9 +1212,8 @@ FFX_API FfxErrorCode ffxFsr2GetGpuMemoryUsage(FfxDevice device, FfxApiDimensions
     size_t resourceCount = sizeof(resources) / sizeof(resources[0]);
     for (size_t i = 0; i < resourceCount; ++i)
     {
-#ifdef FFX_BACKEND_DX12
-        FFX_VALIDATE(ffxGetResourceSizeFromDescriptionDX12(device, resources[i], &size));
-#endif // FFX_BACKEND_DX12
+        FFX_VALIDATE(GetResourceSizeFromDescription(device, resources[i], &size));
+
         pVramUsage->totalUsageInBytes += size;
         if (resources[i]->resourceDescription.flags & FFX_API_RESOURCE_FLAGS_ALIASABLE)
         {
@@ -1389,7 +1385,7 @@ FfxErrorCode ffxFsr2ContextGenerateReactiveMask(FfxFsr2Context* context, const F
     jobDescriptor.dimensions[0] = dispatchSrcX;
     jobDescriptor.dimensions[1] = dispatchSrcY;
     jobDescriptor.dimensions[2] = 1;
-    jobDescriptor.pipeline = *pipeline;
+    jobDescriptor.pipeline = pipeline;
 
     for (uint32_t currentShaderResourceViewIndex = 0; currentShaderResourceViewIndex < pipeline->srvTextureCount; ++currentShaderResourceViewIndex) {
 
@@ -1459,7 +1455,7 @@ static FfxErrorCode generateReactiveMaskInternal(FfxFsr2Context_Private* context
     jobDescriptor.dimensions[0] = dispatchSrcX;
     jobDescriptor.dimensions[1] = dispatchSrcY;
     jobDescriptor.dimensions[2] = 1;
-    jobDescriptor.pipeline = *pipeline;
+    jobDescriptor.pipeline = pipeline;
 
     for (uint32_t currentShaderResourceViewIndex = 0; currentShaderResourceViewIndex < pipeline->srvTextureCount; ++currentShaderResourceViewIndex) {
 

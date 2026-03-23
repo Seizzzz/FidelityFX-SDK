@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -722,15 +722,18 @@ typedef struct FfxPipelineState {
     FfxRootSignature                rootSignature;                                      ///< The pipelines rootSignature
     FfxCommandSignature             cmdSignature;                                       ///< The command signature used for indirect workloads
     FfxPipeline                     pipeline;                                           ///< The pipeline object
-    uint32_t                        uavTextureCount;                                    ///< Count of Texture UAVs used in this pipeline
-    uint32_t                        srvTextureCount;                                    ///< Count of Texture SRVs used in this pipeline
-    uint32_t                        srvBufferCount;                                     ///< Count of Buffer SRV used in this pipeline
-    uint32_t                        uavBufferCount;                                     ///< Count of Buffer UAVs used in this pipeline
-    uint32_t                        staticTextureSrvCount;                              ///< Count of static Texture SRVs used in this pipeline
-    uint32_t                        staticBufferSrvCount;                               ///< Count of static Buffer SRVs used in this pipeline
-    uint32_t                        staticTextureUavCount;                              ///< Count of static Texture UAVs used in this pipeline
-    uint32_t                        staticBufferUavCount;                               ///< Count of static Buffer UAVs used in this pipeline
-    uint32_t                        constCount;                                         ///< Count of constant buffers used in this pipeline
+    uint32_t                        uavTextureCount;                                    ///< Count of Texture UAVs actually used in this pipeline
+    uint32_t                        srvTextureCount;                                    ///< Count of Texture SRVs actually used in this pipeline
+    uint32_t                        srvBufferCount;                                     ///< Count of Buffer SRV actually used in this pipeline
+    uint32_t                        uavBufferCount;                                     ///< Count of Buffer UAVs actually used in this pipeline
+    uint32_t                        staticTextureSrvCount;                              ///< Count of static Texture SRVs actually used in this pipeline
+    uint32_t                        staticBufferSrvCount;                               ///< Count of static Buffer SRVs actually used in this pipeline
+    uint32_t                        staticTextureUavCount;                              ///< Count of static Texture UAVs actually used in this pipeline
+    uint32_t                        staticBufferUavCount;                               ///< Count of static Buffer UAVs actually used in this pipeline
+    uint32_t                        constCount;                                         ///< Count of constant buffers actually used in this pipeline
+
+    uint32_t                        maxUavTextureAndBufferIndex;
+    uint32_t                        maxSrvTextureAndBufferIndex;
 
     FfxResourceBinding              uavTextureBindings[FFX_MAX_NUM_UAVS];               ///< Array of ResourceIdentifiers bound as texture UAVs
     FfxResourceBinding              srvTextureBindings[FFX_MAX_NUM_SRVS];               ///< Array of ResourceIdentifiers bound as texture SRVs
@@ -965,7 +968,7 @@ typedef struct FfxClearFloatJobDescription {
 /// @ingroup SDKTypes
 typedef struct FfxComputeJobDescription {
 
-    FfxPipelineState                pipeline;                               ///< Compute pipeline for the render job.
+    const FfxPipelineState*          pipeline;                               ///< Compute pipeline for the render job.
     uint32_t                        dimensions[3];                          ///< Dispatch dimensions.
     FfxResourceInternal             cmdArgument;                            ///< Dispatch indirect cmd argument buffer
     uint32_t                        cmdArgumentOffset;                      ///< Dispatch indirect offset within the cmd argument buffer
@@ -983,7 +986,7 @@ typedef struct FfxComputeJobDescription {
 
 typedef struct FfxRasterJobDescription
 {
-    FfxPipelineState                pipeline;                               ///< Raster pipeline for the render job.
+    const FfxPipelineState*          pipeline;                               ///< Raster pipeline for the render job.
     uint32_t                        numVertices;
     FfxResourceInternal             renderTarget;
     FfxTextureSRV                   srvTextures[FFX_MAX_NUM_SRVS];  ///< SRV texture resources to be bound in the compute job.

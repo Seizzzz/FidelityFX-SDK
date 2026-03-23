@@ -7,7 +7,7 @@
         </marker>
     </defs>
     <text x="50" y="20" text-anchor="middle">Game</text>
-    <text x="150" y="20" text-anchor="middle">FSR3</text>
+    <text x="150" y="20" text-anchor="middle">FSR™</text>
     <text x="250" y="20" text-anchor="middle">Pacing thread</text>
     <text x="350" y="20" text-anchor="middle">Present thread</text>
     <text x="450" y="20" text-anchor="middle">GPU</text>

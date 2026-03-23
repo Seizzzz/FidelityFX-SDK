@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -46,7 +46,7 @@ struct TraceRayDesc
 
 struct TraceRayHitInfo
 {
-    float3x3 objectToWorld;
+    float3x4 objectToWorld;
     float3 position;
     float2 barycentrics;
     float rayT;

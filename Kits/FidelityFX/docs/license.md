@@ -1,6 +1,6 @@
 The following license applies to all files except as noted below. 
 
-Copyright (C) 2025  Advanced Micro Devices, Inc. All rights reserved. 
+Copyright (C) 2026  Advanced Micro Devices, Inc. All rights reserved. 
  
 REDISTRIBUTION: Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to install, reproduce, copy and distribute copies of the Software, in binary form only, and to permit persons to whom the Software is provided to do the same, provided that the following conditions are met: 
  
@@ -37,7 +37,6 @@ US$10.
 These source files 
 
 - `ClearMediaCache.bat`
-- `dll-versions.txt`
 - `docs\getting-started\building-samples.md`
 - `docs\getting-started\index.md`
 - `docs\getting-started\media\component-dependencies-dark.png`
@@ -65,7 +64,7 @@ These source files
 - `docs\samples\media\combine-adaptive-compute-ambient-occlusion\cacao-sample.jpg`
 - `docs\samples\media\combine-adaptive-compute-ambient-occlusion\cacao-sample.png`
 - `docs\samples\media\contrast-adaptive-sharpening\cas-sample.png`
-- `docs\samples\media\denoiser\fsr-ray-regeneration-sample.jpg`
+- `docs\samples\media\denoiser\fsr-ray-regeneration-sample.png`
 - `docs\samples\media\hybrid-reflections\hybrid-reflections.jpg`
 - `docs\samples\media\hybrid-reflections\hybrid-reflections.png`
 - `docs\samples\media\hybrid-shadows\hybrid-shadows-sample.jpg`
@@ -78,6 +77,7 @@ These source files
 - `docs\samples\media\luma-preserving-mapper\NoLPM.png`
 - `docs\samples\media\parallel-sort\parallel-sort_resized.jpg`
 - `docs\samples\media\parallel-sort\parallel-sort.jpg`
+- `docs\samples\media\radiance-caching\nrc-preview-sample.png`
 - `docs\samples\media\single-pass-downsampler\spd-sample.jpg`
 - `docs\samples\media\stochastic-screen-space-reflections\sssr-sample_resized.jpg`
 - `docs\samples\media\stochastic-screen-space-reflections\sssr-sample.jpg`
@@ -95,8 +95,6 @@ These source files
 - `Kits\Cauldron2\dx12\Cauldron_vs2022.vcxproj`
 - `Kits\Cauldron2\dx12\Cauldron_vs2022.vcxproj.filters`
 - `Kits\Cauldron2\dx12\framework\config\cauldronconfig.json`
-- `Kits\Cauldron2\dx12\framework\core\backend_implementations\backend_interface_vk.cpp`
-- `Kits\Cauldron2\dx12\framework\core\backend_implementations\backend_interface_vk.h`
 - `Kits\Cauldron2\dx12\framework\core\backend_interface.h`
 - `Kits\Cauldron2\dx12\framework\core\component.cpp`
 - `Kits\Cauldron2\dx12\framework\core\component.h`
@@ -440,9 +438,10 @@ These source files
 - `Kits\FidelityFX\docs\techniques\index.md`
 - `Kits\FidelityFX\docs\techniques\media\cross.png`
 - `Kits\FidelityFX\docs\techniques\media\denoiser\fsr-ray-regeneration-brdf-lut.jpg`
-- `Kits\FidelityFX\docs\techniques\media\denoiser\fsr-ray-regeneration-denoised-sample.jpg`
-- `Kits\FidelityFX\docs\techniques\media\denoiser\fsr-ray-regeneration-noisy-sample.jpg`
-- `Kits\FidelityFX\docs\techniques\media\denoiser\fsr-ray-regeneration-sample.jpg`
+- `Kits\FidelityFX\docs\techniques\media\denoiser\fsr-ray-regeneration-debug-view.png`
+- `Kits\FidelityFX\docs\techniques\media\denoiser\fsr-ray-regeneration-denoised-sample.png`
+- `Kits\FidelityFX\docs\techniques\media\denoiser\fsr-ray-regeneration-noisy-sample.png`
+- `Kits\FidelityFX\docs\techniques\media\denoiser\fsr-ray-regeneration-sample.png`
 - `Kits\FidelityFX\docs\techniques\media\frame-interpolation-swapchain\frame-interpolation-swap-chain.svg`
 - `Kits\FidelityFX\docs\techniques\media\frame-interpolation\frame-interpolation-debug-overlay.svg`
 - `Kits\FidelityFX\docs\techniques\media\frame-pacing\fixed-high.svg`
@@ -492,11 +491,11 @@ These source files
 - `Kits\FidelityFX\docs\whats-new\version_1_1_4.md`
 - `Kits\FidelityFX\docs\whats-new\version_1_1.md`
 - `Kits\FidelityFX\docs\whats-new\version_2_0_0.md`
+- `Kits\FidelityFX\docs\whats-new\version_2_1_0.md`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\antilag2\ffx_antilag2_dx12.h`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\BuildFrameInterpolationShaders.bat`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\BuildOpticalFlowShaders.bat`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\ffx_provider_fsr3framegenerationswapchain_dx12.cpp`
-- `Kits\FidelityFX\framegeneration\fsr3\dx12\FrameInterpolationSwapchainDebugPacing.hlsl`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\FrameInterpolationSwapchainDebugPacingPS.h`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\FrameInterpolationSwapchainDebugPacingVS.h`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\FrameInterpolationSwapchainDX12_DebugPacing.cpp`
@@ -507,7 +506,6 @@ These source files
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\FrameInterpolationSwapchainDX12_UiComposition.h`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\FrameInterpolationSwapchainDX12.cpp`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\FrameInterpolationSwapchainDX12.h`
-- `Kits\FidelityFX\framegeneration\fsr3\dx12\FrameInterpolationSwapchainUiComposition.hlsl`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\FrameInterpolationSwapchainUiCompositionPremulPS.h`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\FrameInterpolationSwapchainUiCompositionPremulVS.h`
 - `Kits\FidelityFX\framegeneration\fsr3\dx12\FrameInterpolationSwapchainUiCompositionPS.h`
@@ -569,6 +567,8 @@ These source files
 - `Kits\FidelityFX\framegeneration\fsr3\internal\shaders\ffx_opticalflow_generate_scd_histogram_pass.hlsl`
 - `Kits\FidelityFX\framegeneration\fsr3\internal\shaders\ffx_opticalflow_prepare_luma_pass.hlsl`
 - `Kits\FidelityFX\framegeneration\fsr3\internal\shaders\ffx_opticalflow_scale_optical_flow_advanced_pass_v5.hlsl`
+- `Kits\FidelityFX\framegeneration\fsr3\internal\shaders\FrameInterpolationSwapchainDebugPacing.hlsl`
+- `Kits\FidelityFX\framegeneration\fsr3\internal\shaders\FrameInterpolationSwapchainUiComposition.hlsl`
 - `Kits\FidelityFX\framegeneration\include\dx12\ffx_api_framegeneration_dx12.h`
 - `Kits\FidelityFX\framegeneration\include\dx12\ffx_api_framegeneration_dx12.hpp`
 - `Kits\FidelityFX\framegeneration\include\ffx_framegeneration_api_types.h`
@@ -579,20 +579,11 @@ These source files
 - `Kits\FidelityFX\radiancecache\include\ffx_radiancecache.hpp`
 - `Kits\FidelityFX\readme.md`
 - `Kits\FidelityFX\signedbin\amd_fidelityfx_denoiser_dx12.dll`
-- `Kits\FidelityFX\signedbin\amd_fidelityfx_denoiser_dx12.lib`
-- `Kits\FidelityFX\signedbin\amd_fidelityfx_denoiser_dx12.pdb`
 - `Kits\FidelityFX\signedbin\amd_fidelityfx_framegeneration_dx12.dll`
-- `Kits\FidelityFX\signedbin\amd_fidelityfx_framegeneration_dx12.lib`
-- `Kits\FidelityFX\signedbin\amd_fidelityfx_framegeneration_dx12.pdb`
 - `Kits\FidelityFX\signedbin\amd_fidelityfx_loader_dx12.dll`
 - `Kits\FidelityFX\signedbin\amd_fidelityfx_loader_dx12.lib`
-- `Kits\FidelityFX\signedbin\amd_fidelityfx_loader_dx12.pdb`
 - `Kits\FidelityFX\signedbin\amd_fidelityfx_radiancecache_dx12.dll`
-- `Kits\FidelityFX\signedbin\amd_fidelityfx_radiancecache_dx12.lib`
-- `Kits\FidelityFX\signedbin\amd_fidelityfx_radiancecache_dx12.pdb`
 - `Kits\FidelityFX\signedbin\amd_fidelityfx_upscaler_dx12.dll`
-- `Kits\FidelityFX\signedbin\amd_fidelityfx_upscaler_dx12.lib`
-- `Kits\FidelityFX\signedbin\amd_fidelityfx_upscaler_dx12.pdb`
 - `Kits\FidelityFX\upscalers\fsr3\dx12\BuildFSR2Shaders.bat`
 - `Kits\FidelityFX\upscalers\fsr3\dx12\BuildFSR3UpscalerShaders.bat`
 - `Kits\FidelityFX\upscalers\fsr3\include\ffx_fsr2.h`
@@ -771,6 +762,8 @@ These source files
 - `Kits\OpenSource\vectormath\vectormath.hpp`
 - `readme.md`
 - `Samples\Denoisers\FidelityFX_Denoiser\dx12\config\denoiserconfig.json`
+- `Samples\Denoisers\FidelityFX_Denoiser\dx12\debugoverlayrendermodule.cpp`
+- `Samples\Denoisers\FidelityFX_Denoiser\dx12\debugoverlayrendermodule.h`
 - `Samples\Denoisers\FidelityFX_Denoiser\dx12\denoiserrendermodule.cpp`
 - `Samples\Denoisers\FidelityFX_Denoiser\dx12\denoiserrendermodule.h`
 - `Samples\Denoisers\FidelityFX_Denoiser\dx12\dpiawarescaling.manifest`
@@ -789,6 +782,7 @@ These source files
 - `Samples\Denoisers\FidelityFX_Denoiser\dx12\sample.cpp`
 - `Samples\Denoisers\FidelityFX_Denoiser\dx12\sample.h`
 - `Samples\Denoisers\FidelityFX_Denoiser\dx12\shaders\common.hlsl`
+- `Samples\Denoisers\FidelityFX_Denoiser\dx12\shaders\debug_overlay.hlsl`
 - `Samples\Denoisers\FidelityFX_Denoiser\dx12\shaders\denoiser_compose.hlsl`
 - `Samples\Denoisers\FidelityFX_Denoiser\dx12\shaders\denoiser_prepass.hlsl`
 - `Samples\Denoisers\FidelityFX_Denoiser\dx12\shaders\geometry.hlsl`
@@ -889,7 +883,7 @@ These source files
 are subject to the following license:   
  
 
-Copyright (C) 2025  Advanced Micro Devices, Inc. All rights reserved. 
+Copyright (C) 2026  Advanced Micro Devices, Inc. All rights reserved. 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: 
 

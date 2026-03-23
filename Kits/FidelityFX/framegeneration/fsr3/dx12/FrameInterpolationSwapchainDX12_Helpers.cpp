@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -23,7 +23,6 @@
 #include "../include/ffx_frameinterpolation.h"
 #include "../../../backend/dx12/ffx_dx12.h"
 
-
 #include "FrameInterpolationSwapchainDX12_Helpers.h"
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
@@ -45,6 +44,7 @@ IDXGIFactory* getDXGIFactoryFromSwapChain(IDXGISwapChain* swapChain)
 
 void waitForPerformanceCount(const int64_t targetCount, const int64_t frequency, const UINT timerResolution, const UINT spinTime)
 {
+                                
     int64_t currentCount;
     QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&currentCount));
     if (currentCount >= targetCount)
@@ -74,6 +74,7 @@ void waitForPerformanceCount(const int64_t targetCount, const int64_t frequency,
 
 bool waitForFenceValue(ID3D12Fence* fence, UINT64 value, DWORD dwMilliseconds, FfxWaitCallbackFunc waitCallback, const bool waitForSingleObjectOnFence)
 {
+           
     bool status = false;
 
     if (fence)
@@ -220,10 +221,17 @@ IDXGIOutput6* getMostRelevantOutputFromSwapChain(IDXGISwapChain* swapChain)
 
                                 if (area > largestArea)
                                 {
-                                    SafeRelease(pOutput6);
-                                    if (SUCCEEDED(pOutput->QueryInterface(IID_PPV_ARGS(&pOutput6))))
+                                    IDXGIOutput6* newOutput = nullptr;
+                                    if (SUCCEEDED(pOutput->QueryInterface(IID_PPV_ARGS(&newOutput))))
                                     {
                                         largestArea = area;
+                                        // release previous output before assigning new one
+                                        SafeRelease(pOutput6);
+                                        pOutput6 = newOutput;
+
+                                    } else {
+                                        // release result of failed query
+                                        SafeRelease(newOutput);
                                     }
                                 }
                             }

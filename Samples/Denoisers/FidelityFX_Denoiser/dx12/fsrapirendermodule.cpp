@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -311,6 +311,8 @@ void FSRRenderModule::UpdateFSRContext(bool enabled)
         if (m_UpscaleMethod == Upscaler_FSRAPI)
         {
             ffx::CreateContextDescUpscale createFsr{};
+            ffx::CreateContextDescUpscaleVersion createFsrVersion{};
+            createFsrVersion.version = FFX_UPSCALER_VERSION;
             ffx::ReturnCode retCode;
             ffxReturnCode_t retCode_t;
 
@@ -349,7 +351,7 @@ void FSRRenderModule::UpdateFSRContext(bool enabled)
                     CauldronAssert(ASSERT_WARNING, retCode_t == FFX_API_RETURN_OK,
                         L"ffxQuery(nullptr,UpscaleGetGPUMemoryUsageV2, %S) returned %d", m_FsrVersionNames[m_FsrVersionIndex], retCode_t);
                     CAUDRON_LOG_INFO(L"Upscaler version %S Query GPUMemoryUsageV2 VRAM totalUsageInBytes %f MB aliasableUsageInBytes %f MB", m_FsrVersionNames[m_FsrVersionIndex], gpuMemoryUsageUpscaler.totalUsageInBytes / 1048576.f, gpuMemoryUsageUpscaler.aliasableUsageInBytes / 1048576.f);
-                    retCode = ffx::CreateContext(m_UpscalingContext, nullptr, createFsr, backendDesc, versionOverride);
+                    retCode = ffx::CreateContext(m_UpscalingContext, nullptr, createFsr, createFsrVersion, backendDesc, versionOverride);
                 }
                 else
                 {
@@ -357,7 +359,7 @@ void FSRRenderModule::UpdateFSRContext(bool enabled)
                     CauldronAssert(ASSERT_WARNING, retCode == ffx::ReturnCode::Ok,
                         L"ffxQuery(nullptr,UpscaleGetGPUMemoryUsageV2) returned %d", (uint32_t)retCode);
                     CAUDRON_LOG_INFO(L"Default Upscaler Query GPUMemoryUsageV2 totalUsageInBytes %f MB aliasableUsageInBytes %f MB", gpuMemoryUsageUpscaler.totalUsageInBytes / 1048576.f, gpuMemoryUsageUpscaler.aliasableUsageInBytes / 1048576.f);
-                    retCode = ffx::CreateContext(m_UpscalingContext, nullptr, createFsr, backendDesc);
+                    retCode = ffx::CreateContext(m_UpscalingContext, nullptr, createFsr, createFsrVersion, backendDesc);
                 }
 
                 CauldronAssert(ASSERT_CRITICAL, retCode == ffx::ReturnCode::Ok, L"Couldn't create the ffxapi upscaling context: %d", (uint32_t)retCode);

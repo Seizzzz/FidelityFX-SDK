@@ -33,7 +33,7 @@ The Visual Studio solution file (.sln) will contain all projects needed to build
 
 To run a project from Visual Studio:
 
- 1. If not already highlighted, select the sample project in the solution explorer.
+ 1. If not already highlighted, select the project in the solution explorer that matches the sample solution name (minus the visual studio version postfix - e.g FidelityFX_FSR for FidelityFX_FSR_2022).
 
  2. Right-click the project and select `Set as Start-up project`.
 

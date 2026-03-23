@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -30,9 +30,9 @@ Texture2D<float4> g_IndirectSpecular : register(t3);
 Texture2D<float4> g_DominantLightVisibility : register(t4);
 Texture2D<float4> g_SkipSignal : register(t5);
 
-Texture2D<float4> g_DiffuseAlbedo : register(t6);
-Texture2D<float4> g_SpecularAlbedo : register(t7);
-Texture2D<float4> g_FusedAlbedo : register(t8);
+Texture2D<float3> g_DiffuseAlbedo : register(t6);
+Texture2D<float3> g_SpecularAlbedo : register(t7);
+Texture2D<float3> g_FusedAlbedo : register(t8);
 Texture2D<float4> g_Normals : register(t9);
 Texture2D<float> g_Depthbuffer : register(t10);
 
@@ -81,16 +81,16 @@ void main(uint3 dtid : SV_DispatchThreadID)
     const float3 cameraPosition = ViewSpaceToWorldSpace(float4(0.0f, 0.0f, 0.0f, 1.0f), g_CameraToWorld);
     const float3 toCameraDirection = normalize(cameraPosition - pixelPosition);
     
-    float4 directDiffuse = g_DirectDiffuse[pixel] * g_DirectDiffuseContrib;
-    float3 directSpecular = g_DirectSpecular[pixel].xyz * g_DirectSpecularContrib;
-    float3 indirectDiffuse = g_IndirectDiffuse[pixel].xyz * g_IndirectDiffuseContrib;
+    float4 directDiffuse    = g_DirectDiffuse[pixel]        * g_DirectDiffuseContrib;
+    float3 directSpecular   = g_DirectSpecular[pixel].xyz   * g_DirectSpecularContrib;
+    float3 indirectDiffuse  = g_IndirectDiffuse[pixel].xyz  * g_IndirectDiffuseContrib;
     float3 indirectSpecular = g_IndirectSpecular[pixel].xyz * g_IndirectSpecularContrib;
-    float3 skip = g_SkipSignal[pixel].xyz * g_SkipContrib;
+    float3 skip             = g_SkipSignal[pixel].xyz       * g_SkipContrib;
     
     const bool debugOnlyFirstResource = (g_Flags & COMPOSE_DEBUG_ONLY_FIRST_RESOURCE) != 0;
     
-    float4 diffuseAlbedo = Square(g_DiffuseAlbedo[pixel]);
-    float4 specularAlbedo = Square(g_SpecularAlbedo[pixel]);
+    const float3 diffuseAlbedo  = Square(g_DiffuseAlbedo[pixel]);
+    const float3 specularAlbedo = Square(g_SpecularAlbedo[pixel]);
     
     if (g_UseDominantLight && !debugOnlyFirstResource)
     {
@@ -101,17 +101,13 @@ void main(uint3 dtid : SV_DispatchThreadID)
             float3 normal = OctahedronUvToNormal(normalEnc.xy);
             float roughness = normalEnc.z;
             
-            MaterialInfo materialInfo;
+            MaterialInfo materialInfo = (MaterialInfo)0; // Only roughness is used by DirectionalLight
             materialInfo.perceptualRoughness = max(roughness, 1e-6);
-            materialInfo.alphaRoughness = max(roughness * roughness, 1e-6);
-            materialInfo.metallic = diffuseAlbedo.a;
-            materialInfo.baseColor = diffuseAlbedo.rgb * (1.0 - materialInfo.metallic);
-            materialInfo.reflectance0 = lerp((float3)MinReflectance, diffuseAlbedo.rgb, (float3)materialInfo.metallic);
-            materialInfo.reflectance90 = float3(1.0, 1.0, 1.0);
+            materialInfo.alphaRoughness      = max(roughness * roughness, 1e-6);
             
             LightingResult lightResult = DirectionalLight(g_LightInfo.LightInfo[g_DominantLightIndex], materialInfo, normal, toCameraDirection);
-            directDiffuse.xyz += lightResult.diffuse * dominantLightVisibility;
-            directSpecular.xyz += lightResult.specular * dominantLightVisibility;
+            directDiffuse.xyz  += lightResult.diffuse  * dominantLightVisibility * g_DirectDiffuseContrib;
+            directSpecular.xyz += lightResult.specular * dominantLightVisibility * g_DirectSpecularContrib;
         }
     }
     
@@ -156,13 +152,13 @@ void main(uint3 dtid : SV_DispatchThreadID)
         float3 result = float3(0,0,0);
         if (g_Flags & COMPOSE_FUSED)
         {
-            float4 fusedAlbedo = Square(g_FusedAlbedo[pixel]);
-            result = (directSpecular.xyz * specularAlbedo.xyz) + (directDiffuse.xyz * diffuseAlbedo.xyz * (1.0 - diffuseAlbedo.w)) + indirectSpecular.xyz * fusedAlbedo.xyz;
+            const float3 fusedAlbedo = Square(g_FusedAlbedo[pixel]);
+            result = (directSpecular * specularAlbedo) + (directDiffuse.xyz * diffuseAlbedo) + (indirectSpecular * fusedAlbedo);
         }
         else
         {
-            float3 diffuse = (directDiffuse.xyz + indirectDiffuse) * diffuseAlbedo.xyz * (1.0f - diffuseAlbedo.w);
-            float3 specular = (directSpecular + indirectSpecular) * specularAlbedo.xyz;
+            const float3 diffuse  = (directDiffuse.xyz + indirectDiffuse)  * diffuseAlbedo;
+            const float3 specular = (directSpecular    + indirectSpecular) * specularAlbedo;
             result = diffuse + specular;
         }
         

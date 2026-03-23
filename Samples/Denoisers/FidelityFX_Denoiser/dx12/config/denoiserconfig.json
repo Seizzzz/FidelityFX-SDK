@@ -26,15 +26,15 @@
                 "AllowUAV": true
             },
             "SpecularAlbedoResource": {
-                "Format": "RGBA8_UNORM",
+                "Format": "RGB10A2_UNORM",
                 "AllowUAV": true
             },
             "DiffuseAlbedoResource": {
-                "Format": "RGBA8_UNORM",
+                "Format": "RGB10A2_UNORM",
                 "AllowUAV": true
             },
             "FusedAlbedoResource": {
-                "Format": "RGBA8_UNORM",
+                "Format": "RGB10A2_UNORM",
                 "AllowUAV": true
             },
             "SkipSignalResource": {
@@ -61,12 +61,17 @@
                 "Format": "R16_FLOAT",
                 "AllowUAV": true
             },
+            "DenoiserDebugViewResource": {
+                "Format": "RGBA16_FLOAT",
+                "AllowUAV": true
+            },
 
             "DenoiserDirectDiffuseTarget": "DirectDiffuseResource",
             "DenoiserDirectSpecularTarget": "DirectSpecularResource",
             "DenoiserIndirectDiffuseTarget": "IndirectDiffuseResource",
             "DenoiserIndirectSpecularTarget": "IndirectSpecularResource",
             "DenoiserDominantLightVisibilityTarget": "DominantLightVisibilityResource",
+            "DenoiserDebugViewTarget": "DenoiserDebugViewResource",
             "DenoiserNormalsTarget": "NormalsResource",
             "DenoiserSpecularAlbedoTarget": "SpecularAlbedoResource",
             "DenoiserDiffuseAlbedoTarget": "DiffuseAlbedoResource",
@@ -81,6 +86,7 @@
             "TranslucencyRenderModule",
             "TAARenderModule",
             "FSRApiRenderModule",
+            "DebugOverlayRenderModule",
             "ToneMappingRenderModule"
         ],
         "RenderModuleOverrides": {

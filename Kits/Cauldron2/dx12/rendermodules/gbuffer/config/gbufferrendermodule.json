@@ -3,7 +3,7 @@
 
         "RenderResources": {
             "MotionVectorTarget": {
-                "Format": "RG16_FLOAT"
+                "Format": "RGBA16_FLOAT"
             },
             "GBufferAlbedoTarget": {
                 "Format": "RGBA8_UNORM"

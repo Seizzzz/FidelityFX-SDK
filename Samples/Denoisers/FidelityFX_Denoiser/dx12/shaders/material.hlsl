@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -60,8 +60,8 @@ MaterialInfo GetMaterialInfo(PBRPixelInfo pbrPixelInfo)
 {
     MaterialInfo materialInfo = (MaterialInfo)0;
 
-    materialInfo.perceptualRoughness = max(pbrPixelInfo.pixelAoRoughnessMetallic.g, EPSILON);
-    materialInfo.alphaRoughness = max(pbrPixelInfo.pixelAoRoughnessMetallic.g * pbrPixelInfo.pixelAoRoughnessMetallic.g, EPSILON);
+    materialInfo.perceptualRoughness = max(pbrPixelInfo.pixelAoRoughnessMetallic.g, 0.04f);
+    materialInfo.alphaRoughness = materialInfo.perceptualRoughness * materialInfo.perceptualRoughness;
     materialInfo.metallic = pbrPixelInfo.pixelAoRoughnessMetallic.b;
     materialInfo.baseColor = pbrPixelInfo.pixelBaseColorAlpha.rgb * (1.0 - pbrPixelInfo.pixelAoRoughnessMetallic.b);
     float3 metallic = float3(pbrPixelInfo.pixelAoRoughnessMetallic.b, pbrPixelInfo.pixelAoRoughnessMetallic.b, pbrPixelInfo.pixelAoRoughnessMetallic.b);

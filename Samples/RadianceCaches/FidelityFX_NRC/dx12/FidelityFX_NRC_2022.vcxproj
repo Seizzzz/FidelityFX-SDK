@@ -81,17 +81,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>%(AdditionalDependencies);"$(SolutionDir)..\..\..\..\Kits\OpenSource\amd\acs\amd_acs_x64.lib";"$(SolutionDir)..\..\..\..\Kits\OpenSource\amd\ags\amd_ags_x64.lib";"$(FfxLibPathLoader)amd_fidelityfx_loader_dx12d.lib";Xinput.lib;Shcore.lib;d3dcompiler.lib;DXGI.lib;D3D12.lib</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12d.dll $(OutDir)
-xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12d.pdb $(OutDir)
-xcopy /y $(FfxDllPathRadianceCache)amd_fidelityfx_radiancecache_dx12d.dll $(OutDir)
-xcopy /y $(FfxDllPathRadianceCache)amd_fidelityfx_radiancecache_dx12d.pdb $(OutDir)
-xcopy /y $(ProjectDir)config.json $(OutDir)
-xcopy /y /s $(ProjectDir)shaders\ $(OutDir)shaders\</Command>
-    </PostBuildEvent>
-    <PostBuildEvent>
-      <Message>Copying required sample files</Message>
-    </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpiawarescaling.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
@@ -115,17 +104,6 @@ xcopy /y /s $(ProjectDir)shaders\ $(OutDir)shaders\</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>%(AdditionalDependencies);"$(SolutionDir)..\..\..\..\Kits\OpenSource\amd\acs\amd_acs_x64.lib";"$(SolutionDir)..\..\..\..\Kits\OpenSource\amd\ags\amd_ags_x64.lib";"$(SolutionDir)..\..\..\..\Kits\FidelityFX\signedbin\amd_fidelityfx_loader_dx12.lib";Xinput.lib;Shcore.lib;d3dcompiler.lib;DXGI.lib;D3D12.lib</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12.pdb $(OutDir)
-xcopy /y $(FfxDllPathRadianceCache)amd_fidelityfx_radiancecache_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathRadianceCache)amd_fidelityfx_radiancecache_dx12.pdb $(OutDir)
-xcopy /y $(ProjectDir)config.json $(OutDir)
-xcopy /y /s $(ProjectDir)shaders\ $(OutDir)shaders\</Command>
-    </PostBuildEvent>
-    <PostBuildEvent>
-      <Message>Copying required sample files</Message>
-    </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpiawarescaling.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
@@ -301,4 +279,31 @@ xcopy /y /s $(ProjectDir)shaders\ $(OutDir)shaders\</Command>
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyRequiredDlls" AfterTargets="Build">
+    <Message Importance="high" Text="Copying required FidelityFX DLLs..." />
+    
+    <!-- Copy config file -->
+    <Copy SourceFiles="$(ProjectDir)config.json" DestinationFolder="$(OutDir)" />
+    
+    <!-- Copy shader directory -->
+    <MakeDir Directories="$(OutDir)shaders" />
+    <ItemGroup>
+      <ShaderFiles Include="$(ProjectDir)shaders\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ShaderFiles)" DestinationFolder="$(OutDir)shaders\%(RecursiveDir)" />
+    
+    <!-- Copy Loader DLLs (debug or release) -->
+    <Copy SourceFiles="$(FfxDllPathLoader)amd_fidelityfx_loader_dx12d.dll" DestinationFolder="$(OutDir)" Condition="'$(Configuration)'=='Debug'" />
+    <Copy SourceFiles="$(FfxDllPathLoader)amd_fidelityfx_loader_dx12d.pdb" DestinationFolder="$(OutDir)" Condition="'$(Configuration)'=='Debug' And Exists('$(FfxDllPathLoader)amd_fidelityfx_loader_dx12d.pdb')" />
+    <Copy SourceFiles="$(FfxDllPathLoader)amd_fidelityfx_loader_dx12.dll" DestinationFolder="$(OutDir)" Condition="'$(Configuration)'=='Release'" />
+    <Copy SourceFiles="$(FfxDllPathLoader)amd_fidelityfx_loader_dx12.pdb" DestinationFolder="$(OutDir)" Condition="'$(Configuration)'=='Release' And Exists('$(FfxDllPathLoader)amd_fidelityfx_loader_dx12.pdb')" />
+    
+    <!-- Copy RadianceCache DLLs (debug or release) -->
+    <Copy SourceFiles="$(FfxDllPathRadianceCache)amd_fidelityfx_radiancecache_dx12d.dll" DestinationFolder="$(OutDir)" Condition="'$(Configuration)'=='Debug'" />
+    <Copy SourceFiles="$(FfxDllPathRadianceCache)amd_fidelityfx_radiancecache_dx12d.pdb" DestinationFolder="$(OutDir)" Condition="'$(Configuration)'=='Debug' And Exists('$(FfxDllPathRadianceCache)amd_fidelityfx_radiancecache_dx12d.pdb')" />
+    <Copy SourceFiles="$(FfxDllPathRadianceCache)amd_fidelityfx_radiancecache_dx12.dll" DestinationFolder="$(OutDir)" Condition="'$(Configuration)'=='Release'" />
+    <Copy SourceFiles="$(FfxDllPathRadianceCache)amd_fidelityfx_radiancecache_dx12.pdb" DestinationFolder="$(OutDir)" Condition="'$(Configuration)'=='Release' And Exists('$(FfxDllPathRadianceCache)amd_fidelityfx_radiancecache_dx12.pdb')" />
+    
+    <Message Importance="high" Text="Successfully copied all required DLLs" />
+  </Target>
 </Project>

@@ -345,8 +345,9 @@ When `FSR™ Frame Generation Swapchain` `::present` is configured with frame ge
 APIs that require a mutex guard
 - [`ffxCreateContext`](../../api/include/ffx_api.h#L132) for the Frame Generation context
 - [`ffxDestroyContext`](../../api/include/ffx_api.h#L138) for the Frame Generation context
-- `FSR™ Frame Generation Swapchain` `::present` if app supplied a callback to [`frameGenerationCallback`](../../framegeneration/include/ffx_framegeneration.h#L110) within [`ffxConfigureDescFrameGeneration`](../../framegeneration/include/ffx_framegeneration.h#L104) structure.
-- `Dispatch(m_FrameGenContext, ffxDispatchDescFrameGenerationPrepareV2)`
+- [`ffxDispatch`](../../api/include/ffx_api.h#L155) [`ffxDispatchDescFrameGenerationPrepareV2`](../../framegeneration/include/ffx_framegeneration.h#L231) structure
+- [`ffxDispatch`](../../api/include/ffx_api.h#L155) [`ffxDispatchDescFrameGeneration`](../../framegeneration/include/ffx_framegeneration.h#L86) structure if `FSR™ Frame Generation Swapchain` `::present` is not configured with [`frameGenerationCallback`](../../framegeneration/include/ffx_framegeneration.h#L110).
+- `FSR™ Frame Generation Swapchain` `::present` if app supplied a valid [`frameGenerationCallback`](../../framegeneration/include/ffx_framegeneration.h#L110) within [`ffxConfigureDescFrameGeneration`](../../framegeneration/include/ffx_framegeneration.h#L104) structure.
 - `FSR™ Frame Generation Swapchain` swapchain destructor. See [`Shutdown`](../techniques/frame-interpolation-swap-chain.md#Shutdown).
 
 
@@ -381,11 +382,16 @@ ffx::ConfigureDescFrameGeneration m_FrameGenerationConfig{};
     ffx::CreateContext(m_FrameGenContext, nullptr, createFg, backendDesc, headerVersion);
 }
 {
-    // Acquire lock before destroying FG context
+    // Acquire lock before dispatch FG Prepare
     cauldron::FGContextScopeLock lock(true);
-    m_FrameGenerationConfig.frameGenerationEnabled = false;
-    ffx::Configure(m_FrameGenContext, m_FrameGenerationConfig);
-    ffx::DestroyContext(m_FrameGenContext);
+    ffx::DispatchDescFrameGenerationPrepareV2 dispatchFgPrep{};
+    ffx::Dispatch(m_FrameGenContext, dispatchFgPrep);
+}
+{
+    // Acquire lock if app dispatch frame generation directly
+    cauldron::FGContextScopeLock lock(true);
+    ffx::DispatchDescFrameGeneration dispatchFg{};
+    ffx::Dispatch(m_FrameGenContext, dispatchFg);
 }
 {
     // Acquire lock only if the proxy swapchain present operation uses the FG callback to dispatch frame generation.
@@ -394,10 +400,11 @@ ffx::ConfigureDescFrameGeneration m_FrameGenerationConfig{};
     pSwapChain->GetImpl()->m_pSwapChain->Present(1, 0);
 }
 {
-    // Acquire lock before dispatch FG Prepare
+    // Acquire lock before destroying FG context
     cauldron::FGContextScopeLock lock(true);
-    ffx::DispatchDescFrameGenerationPrepareV2 dispatchFgPrep{};
-    ffx::Dispatch(m_FrameGenContext, dispatchFgPrep);
+    m_FrameGenerationConfig.frameGenerationEnabled = false;
+    ffx::Configure(m_FrameGenContext, m_FrameGenerationConfig);
+    ffx::DestroyContext(m_FrameGenContext);
 }
 {
     // Acquire lock before destroying proxy swapchain

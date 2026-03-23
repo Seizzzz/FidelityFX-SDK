@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -1167,7 +1167,7 @@ FfxFloat32x4 ffxMed3(FfxFloat32x4 x, FfxFloat32x4 y, FfxFloat32x4 z)
 /// @returns
 /// The median value of <c><i>x</i></c>, <c><i>y</i></c>, and <c><i>z</i></c>.
 ///
-/// @ingroup HLSL
+/// @ingroup HLSLCore
 FfxInt32 ffxMed3(FfxInt32 x, FfxInt32 y, FfxInt32 z)
 {
     return max(min(x, y), min(max(x, y), z));
@@ -1186,7 +1186,7 @@ FfxInt32 ffxMed3(FfxInt32 x, FfxInt32 y, FfxInt32 z)
 /// @returns
 /// The median value of <c><i>x</i></c>, <c><i>y</i></c>, and <c><i>z</i></c>.
 ///
-/// @ingroup HLSL
+/// @ingroup HLSLCore
 FfxInt32x2 ffxMed3(FfxInt32x2 x, FfxInt32x2 y, FfxInt32x2 z)
 {
     return max(min(x, y), min(max(x, y), z));
@@ -1205,7 +1205,7 @@ FfxInt32x2 ffxMed3(FfxInt32x2 x, FfxInt32x2 y, FfxInt32x2 z)
 /// @returns
 /// The median value of <c><i>x</i></c>, <c><i>y</i></c>, and <c><i>z</i></c>.
 ///
-/// @ingroup HLSL
+/// @ingroup HLSLCore
 FfxInt32x3 ffxMed3(FfxInt32x3 x, FfxInt32x3 y, FfxInt32x3 z)
 {
     return max(min(x, y), min(max(x, y), z));
@@ -1222,7 +1222,7 @@ FfxInt32x3 ffxMed3(FfxInt32x3 x, FfxInt32x3 y, FfxInt32x3 z)
 /// @returns
 /// The median value of <c><i>x</i></c>, <c><i>y</i></c>, and <c><i>z</i></c>.
 ///
-/// @ingroup HLSL
+/// @ingroup HLSLCore
 FfxInt32x4 ffxMed3(FfxInt32x4 x, FfxInt32x4 y, FfxInt32x4 z)
 {
     return max(min(x, y), min(max(x, y), z));

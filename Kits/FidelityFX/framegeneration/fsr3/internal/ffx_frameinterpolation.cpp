@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -40,14 +40,11 @@
 #endif
 
 #include "../../../api/internal/gpu/ffx_core.h"
+#include "../../../api/internal/ffx_backends.h"
 #include "../include/gpu/spd/ffx_spd.h"
 #include "../../../api/internal/ffx_object_management.h"
 #include "ffx_frameinterpolation_private.h"
 #include "ffx_frameinterpolation_shaderblobs.h"
-
-#ifdef FFX_BACKEND_DX12
-#include "../../../backend/dx12/ffx_dx12.h"
-#endif // FFX_BACKEND_DX12
 
 // lists to map shader resource bindpoint name to resource identifier
 typedef struct ResourceBinding
@@ -474,7 +471,7 @@ static FfxErrorCode frameinterpolationCreate(FfxFrameInterpolationContext_Privat
 
     // Check version info - make sure we are linked with the right backend version
     FfxVersionNumber version = context->contextDescription.backendInterface.fpGetSDKVersion(&context->contextDescription.backendInterface);
-    FFX_RETURN_ON_ERROR(version == FFX_SDK_MAKE_VERSION(2, 0, 0), FFX_ERROR_INVALID_VERSION);
+    FFX_RETURN_ON_ERROR(version == FFX_SDK_MAKE_VERSION(FFX_SDK_VERSION_MAJOR, FFX_SDK_VERSION_MINOR, FFX_SDK_VERSION_PATCH), FFX_ERROR_INVALID_VERSION);
 
     // Create the context.
     FfxErrorCode errorCode = context->contextDescription.backendInterface.fpCreateBackendContext(&context->contextDescription.backendInterface, FFX_EFFECT_FRAMEINTERPOLATION, nullptr, &context->effectContextId);
@@ -626,7 +623,7 @@ static void scheduleDispatch(FfxFrameInterpolationContext_Private* context, cons
     jobDescriptor.dimensions[0] = dispatchX;
     jobDescriptor.dimensions[1] = dispatchY;
     jobDescriptor.dimensions[2] = 1;
-    jobDescriptor.pipeline = *pipeline;
+    jobDescriptor.pipeline = pipeline;
 
     for (uint32_t currentRootConstantIndex = 0; currentRootConstantIndex < pipeline->constCount; ++currentRootConstantIndex) {
 #ifdef FFX_DEBUG
@@ -763,9 +760,8 @@ FFX_API FfxErrorCode ffxFrameInterpolationGetGpuMemoryUsage(FfxDevice device, Ff
     size_t resourceCount = sizeof(resources) / sizeof(resources[0]);
     for (size_t i = 0; i < resourceCount; ++i)
     {
-#ifdef FFX_BACKEND_DX12
-        FFX_VALIDATE(ffxGetResourceSizeFromDescriptionDX12(device, resources[i], &size));
-#endif // FFX_BACKEND_DX12
+        FFX_VALIDATE(GetResourceSizeFromDescription(device, resources[i], &size));
+
         pVramUsage->totalUsageInBytes += size;
         if (resources[i]->resourceDescription.flags & FFX_API_RESOURCE_FLAGS_ALIASABLE)
         {
@@ -785,9 +781,8 @@ FFX_API FfxErrorCode ffxFrameInterpolationGetGpuMemoryUsage(FfxDevice device, Ff
 
     for (size_t i = 0; i < sharedResourceCount; ++i)
     {
-#ifdef FFX_BACKEND_DX12
-        FFX_VALIDATE(ffxGetResourceSizeFromDescriptionDX12(device, sharedResources[i], &size));
-#endif // FFX_BACKEND_DX12
+        FFX_VALIDATE(GetResourceSizeFromDescription(device, sharedResources[i], &size));
+
         pVramUsage->totalUsageInBytes += 2 * size; //ffx_provider_framegeneration.cpp calls fpCreateResource() twice per sharedResource
         if (sharedResources[i]->resourceDescription.flags & FFX_API_RESOURCE_FLAGS_ALIASABLE)
         {

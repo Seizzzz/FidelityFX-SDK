@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -96,6 +96,34 @@ public:
 
         m_ScalePreset = m_IsNonNative ? m_CurScale : FSRScalePreset::NativeAA;
         UpdatePreset((int32_t*)&m_ScalePreset);
+    }
+
+    void SetUpscaleMethodHotkey(int32_t method)
+    {
+        if (method != m_UiUpscaleMethod)
+        {
+            m_UiUpscaleMethod = method;
+            m_UiEnabled = (method == Upscaler_FSRAPI); // Sync UI checkbox state
+
+            // If enabling FSR API, set scale preset to Native AA
+            if (method == Upscaler_FSRAPI)
+            {
+                m_ScalePreset = FSRScalePreset::NativeAA;
+                m_CurScale = FSRScalePreset::NativeAA;  // Also update current scale
+            }
+
+            SwitchUpscaler(method);
+        }
+    }
+
+    void SetScalePresetHotkey(int32_t preset)
+    {
+        if (preset >= 0 && preset <= static_cast<int32_t>(FSRScalePreset::UltraPerformance))
+        {
+            int32_t oldPreset = static_cast<int32_t>(m_ScalePreset);
+            m_ScalePreset = static_cast<FSRScalePreset>(preset);
+            UpdatePreset(&oldPreset);
+        }
     }
 
 private:

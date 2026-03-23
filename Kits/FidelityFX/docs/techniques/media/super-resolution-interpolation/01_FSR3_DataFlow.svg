@@ -142,7 +142,7 @@
          font-weight="400"
          font-size="21px"
          transform="translate(909.27,458)"
-         id="text2">FSR3</text>
+         id="text2">FSR™</text>
       <text
          fill="#231e1f"
          font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
@@ -167,7 +167,7 @@
          font-weight="400"
          font-size="21px"
          transform="translate(909.27,318)"
-         id="text4">FSR3</text>
+         id="text4">FSR™</text>
       <text
          fill="#231e1f"
          font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
@@ -199,7 +199,7 @@
          font-size="21px"
          id="text7"
          x="513.74872"
-         y="278.37567">FSR3</text>
+         y="278.37567">FSR™</text>
       <text
          fill="#231e1f"
          font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
@@ -332,7 +332,7 @@
          font-weight="400"
          font-size="21px"
          transform="translate(672.442,446)"
-         id="text16">FSR3</text>
+         id="text16">FSR™</text>
       <text
          fill="#231e1f"
          font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
@@ -475,7 +475,7 @@
          font-size="24px"
          id="text29"
          x="508.25549"
-         y="136">FSR 3 Interfaces with Upscaling, User Interface</text>
+         y="136">FSR™ Interfaces with Upscaling, User Interface</text>
       <text
          fill="#231e1f"
          font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
@@ -501,7 +501,7 @@
          font-size="13px"
          id="text31"
          x="785.13251"
-         y="233.62431">FSR3 Internal Resource Sharing Path</text>
+         y="233.62431">FSR™ Internal Resource Sharing Path</text>
     </g>
   </g>
 </svg>

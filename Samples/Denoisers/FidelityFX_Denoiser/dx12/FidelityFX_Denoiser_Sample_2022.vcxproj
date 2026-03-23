@@ -75,20 +75,6 @@
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpiawarescaling.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
-    <PostBuildEvent>
-      <Command>xcopy /y $(ProjectDir)config\denoiserconfig.json  $(OutDir)configs\
-xcopy /y $(ProjectDir)shaders\  $(OutDir)shaders\
-xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12.pdb $(OutDir)
-xcopy /y $(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.pdb $(OutDir)
-xcopy /y $(FfxDllPathDenoiser)amd_fidelityfx_denoiser_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathDenoiser)amd_fidelityfx_denoiser_dx12.pdb $(OutDir)
-xcopy /y $(ProjectDir)..\..\..\..\Kits\OpenSource\amd\acs\amd_acs_x64.dll $(OutDir)
-xcopy /y $(ProjectDir)..\..\..\..\Kits\OpenSource\amd\ags\amd_ags_x64.dll $(OutDir)
-xcopy /y $(ProjectDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-windows\x64-windows\bin $(OutDir)</Command>
-      <Message>Copying required sample files</Message>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -114,22 +100,9 @@ xcopy /y $(ProjectDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-window
     <Manifest>
       <AdditionalManifestFiles>$(SolutionDir)dpiawarescaling.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
-    <PostBuildEvent>
-      <Command>xcopy /y $(ProjectDir)config\denoiserconfig.json  $(OutDir)configs\
-xcopy /y $(ProjectDir)shaders\  $(OutDir)shaders\
-xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathLoader)amd_fidelityfx_loader_dx12.pdb $(OutDir)
-xcopy /y $(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.pdb $(OutDir)
-xcopy /y $(FfxDllPathDenoiser)amd_fidelityfx_denoiser_dx12.dll $(OutDir)
-xcopy /y $(FfxDllPathDenoiser)amd_fidelityfx_denoiser_dx12.pdb $(OutDir)
-xcopy /y $(ProjectDir)..\..\..\..\Kits\OpenSource\amd\acs\amd_acs_x64.dll $(OutDir)
-xcopy /y $(ProjectDir)..\..\..\..\Kits\OpenSource\amd\ags\amd_ags_x64.dll $(OutDir)
-xcopy /y $(ProjectDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-windows\x64-windows\bin $(OutDir)</Command>
-      <Message>Copying required sample files</Message>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="debugoverlayrendermodule.cpp" />
     <ClCompile Include="fsrapirendermodule.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="denoiserrendermodule.cpp" />
@@ -137,6 +110,7 @@ xcopy /y $(ProjectDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-window
     <ClCompile Include="sample.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="debugoverlayrendermodule.h" />
     <ClInclude Include="denoiserrendermodule.h" />
     <ClInclude Include="fsrapirendermodule.h" />
     <ClInclude Include="pathtracingrendermodule.h" />
@@ -186,10 +160,53 @@ xcopy /y $(ProjectDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-window
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\debug_overlay.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(SolutionDir)packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets" Condition="Exists('$(SolutionDir)packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets')" />
     <Import Project="$(SolutionDir)packages\Microsoft.Direct3D.D3D12.1.614.1\build\native\Microsoft.Direct3D.D3D12.targets" Condition="Exists('$(SolutionDir)packages\Microsoft.Direct3D.D3D12.1.614.1\build\native\Microsoft.Direct3D.D3D12.targets')" />
     <Import Project="$(SolutionDir)packages\Microsoft.Direct3D.DXC.1.8.2407.12\build\native\Microsoft.Direct3D.DXC.targets" Condition="Exists('$(SolutionDir)packages\Microsoft.Direct3D.DXC.1.8.2407.12\build\native\Microsoft.Direct3D.DXC.targets')" />
   </ImportGroup>
+  <Target Name="CopyRequiredDlls" AfterTargets="Build">
+    <Message Importance="high" Text="Copying required FidelityFX DLLs..." />
+    
+    <!-- Copy config file -->
+    <MakeDir Directories="$(OutDir)configs" />
+    <Copy SourceFiles="$(ProjectDir)config\denoiserconfig.json" DestinationFolder="$(OutDir)configs\" />
+    
+    <!-- Copy shaders directory -->
+    <MakeDir Directories="$(OutDir)shaders" />
+    <ItemGroup>
+      <ShaderFiles Include="$(ProjectDir)shaders\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ShaderFiles)" DestinationFolder="$(OutDir)shaders\" />
+    
+    <!-- Copy Loader DLLs -->
+    <Copy SourceFiles="$(FfxDllPathLoader)amd_fidelityfx_loader_dx12.dll" DestinationFolder="$(OutDir)" />
+    <Copy SourceFiles="$(FfxDllPathLoader)amd_fidelityfx_loader_dx12.pdb" DestinationFolder="$(OutDir)" Condition="Exists('$(FfxDllPathLoader)amd_fidelityfx_loader_dx12.pdb')" />
+    
+    <!-- Copy Upscaler DLLs -->
+    <Copy SourceFiles="$(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.dll" DestinationFolder="$(OutDir)" />
+    <Copy SourceFiles="$(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.pdb" DestinationFolder="$(OutDir)" Condition="Exists('$(FfxDllPathUpscaler)amd_fidelityfx_upscaler_dx12.pdb')" />
+    
+    <!-- Copy Denoiser DLLs -->
+    <Copy SourceFiles="$(FfxDllPathDenoiser)amd_fidelityfx_denoiser_dx12.dll" DestinationFolder="$(OutDir)" />
+    <Copy SourceFiles="$(FfxDllPathDenoiser)amd_fidelityfx_denoiser_dx12.pdb" DestinationFolder="$(OutDir)" Condition="Exists('$(FfxDllPathDenoiser)amd_fidelityfx_denoiser_dx12.pdb')" />
+    
+    <!-- Copy AMD library DLLs -->
+    <Copy SourceFiles="$(ProjectDir)..\..\..\..\Kits\OpenSource\amd\acs\amd_acs_x64.dll" DestinationFolder="$(OutDir)" />
+    <Copy SourceFiles="$(ProjectDir)..\..\..\..\Kits\OpenSource\amd\ags\amd_ags_x64.dll" DestinationFolder="$(OutDir)" />
+    
+    <!-- Copy vcpkg runtime dependencies -->
+    <ItemGroup>
+      <VcpkgBinFiles Include="$(ProjectDir)..\..\..\..\Kits\Cauldron2\dx12\vcpkg_installed\x64-windows\x64-windows\bin\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(VcpkgBinFiles)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    
+    <Message Importance="high" Text="Successfully copied all required DLLs" />
+  </Target>
 </Project>

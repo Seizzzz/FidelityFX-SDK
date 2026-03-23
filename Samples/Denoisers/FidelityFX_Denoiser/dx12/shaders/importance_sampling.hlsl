@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -25,11 +25,9 @@
 
 #include "common.hlsl"
 
-float3 SampleCone(inout uint rngState, float3 direction, float coneAngle)
+float3 SampleCone(inout uint rngState, float3 direction, float cosHalfAngle)
 {
-    float cosAngle = cos(coneAngle);
-
-    float z = RandomFloat01(rngState) * (1.0f - cosAngle) + cosAngle;
+    float z = RandomFloat01(rngState) * (1.0f - cosHalfAngle) + cosHalfAngle;
     float phi = RandomFloat01(rngState) * 2.0f * M_PI;
 
     float x = sqrt(1.0f - z * z) * cos(phi);
@@ -68,18 +66,6 @@ float2 ConcentricSampleDisk(inout uint rngState)
     return r * float2(cos(theta), sin(theta));
 }
 
-float3 CosineSampleHemisphere(inout uint rngState)
-{
-    float2 d = ConcentricSampleDisk(rngState);
-    float z = sqrt(max(0.0f, 1.0f - d.x * d.x - d.y * d.y));
-    return float3(d.x, d.y, z);
-}
-
-float CosineSampleHemispherePDF(float3 normal, float3 newDirection)
-{
-    return min(max(dot(normal, newDirection), 0.0001f), 1.0f) * M_ONE_OVER_PI;
-}
-
 float D_GGX(float NeDotVe, float alphaRoughness)
 {
     if (NeDotVe < 0.0f)
@@ -105,75 +91,86 @@ float G_SmithJointGGX(float NdotL, float NdotV, float alphaRoughnessSq)
     return 0.0f;
 }
 
-float GGXBoundedVndfPdf(float3 Ve, float3 Ne, float alphaRoughness)
-{
-    float NeDotVe = min(max(dot(Ve, Ne), 0.0001f), 1.0f);
-    float ndf = D_GGX(NeDotVe, alphaRoughness);
-    float2 ai = alphaRoughness * Ve.xy;
-    float len2 = dot(ai, ai);
-    float t = sqrt(len2 + Ve.z * Ve.z);
-    if (Ve.z >= 0.0f)
-    {
-        float a = saturate(min(alphaRoughness, alphaRoughness)); // Eq. 6
-        float s = 1.0f + length(float2(Ve.x, Ve.y)); // Omit sgn for a <=1
-        float a2 = a * a;
-        float s2 = s * s;
-        float k = (1.0f - a2) * s2 / (s2 + a2 * Ve.z * Ve.z); // Eq. 5
-        return ndf / (2.0f * (k * Ve.z + t)); // Eq. 8 * || dm/do ||
-    }
-    // Numerically stable form of the previous PDF for i.z < 0
-    return ndf * (t - Ve.z) / (2.0f * len2); // = Eq. 7 * || dm/do ||
-}
-
-float3 SampleVndfHemisphereBounded(float3 Ve, float alpha_x, float alpha_y, float U1, float U2)
-{
-    float3 Vh = normalize(float3(alpha_x * Ve.x, alpha_y * Ve.y, Ve.z));
-    // Sample a spherical cap
-    float phi = 2.0f * M_PI * U1;
-    float a = saturate(min(alpha_x, alpha_y)); // Eq. 6
-    float s = 1.0f + length(float2(Ve.x, Ve.y)); // Omit sgn for a <=1
-    float a2 = a * a;
-    float s2 = s * s;
-    float k = (1.0f - a2) * s2 / (s2 + a2 * Ve.z * Ve.z); // Eq. 5
-    float b = Ve.z > 0 ? k * Vh.z : Vh.z;
-    float z = mad(1.0f - U2, 1.0f + b, -b);
-    float sinTheta = sqrt(saturate(1.0f - z * z));
-    float3 o_std = { sinTheta * cos(phi), sinTheta * sin(phi), z };
-    // Compute the microfacet normal m
-    float3 m_std = Vh + o_std;
-    float3 m = normalize(float3(m_std.xy * float2(alpha_x, alpha_y), m_std.z));
-    // The reflection vector o
-    float3 o = 2.0f * dot(Ve, m) * m - Ve;
-    return m;
-}
-
-float3 SampleReflectionVector(inout uint rngState, float3 V, float3 N, float roughness)
-{
-    const float2 xi = float2(RandomFloat01(rngState), RandomFloat01(rngState));
+//------------------------------------------------------------------------------
+// Diffuse Reflections
+//------------------------------------------------------------------------------
     
-    if (roughness < EPSILON)
-    {
-        return reflect(-V, N);
-    }
+float3 SampleCosineWeightedHemisphere(inout uint rngState, out float pdf)
+{
+    float3 rLocal;
+    rLocal.xy = ConcentricSampleDisk(rngState);
+    rLocal.z  = sqrt(1.0f - saturate(dot(rLocal.xy, rLocal.xy)));
+    pdf = rLocal.z * M_ONE_OVER_PI;
+    return rLocal;
+}
     
-    float3x3 TBN = CreateTBN(N);
-    float3 TBN_V = mul(TBN, V);
+float3 SampleDiffuseReflectionVector(inout uint rngState, float3x3 localToWorld, out float pdf)
+{
+    const float3 rLocal = SampleCosineWeightedHemisphere(rngState, pdf);
+
+    return mul(localToWorld, rLocal);
+}
+    
+//------------------------------------------------------------------------------
+// Specular Reflections
+//------------------------------------------------------------------------------
+    
+float3 SampleVndfHemisphereBounded(inout uint rngState, float3 vLocal, float2 alpha, out float pdf)
+{
+    // [Source]
+	// K. Eto, Y. Tokuyoshi: Bounded VNDF Sampling for Smith–GGX Reflections.
+        
+    const float3 vLocalStd = normalize(float3(vLocal.xy * alpha, vLocal.z));
+    // Sample a spherical cap.
+    const float phi = 2.0f * M_PI * RandomFloat01(rngState);
+    const float a = saturate(min(alpha.x, alpha.y)); // Eq. 6
+    const float s = 1.0f + length(vLocal.xy); // Omit sgn for a <=1
+    const float a2 = a * a;
+    const float s2 = s * s;
+    const float k = (1.0f - a2) * s2 / (s2 + a2 * vLocal.z * vLocal.z); // Eq. 5
+    const float b = (0.0f < vLocal.z) ? k * vLocalStd.z : vLocalStd.z;
+    const float z = mad(1.0f - RandomFloat01(rngState), 1.0f + b, -b);
+    const float sinTheta = sqrt(saturate(1.0f - z * z));
+    const float3 rLocalStd = { sinTheta * cos(phi), sinTheta * sin(phi), z };
+    // Compute the microfacet normal m.
+    const float3 mLocalStd = vLocalStd + rLocalStd;
+    const float3 mLocal = normalize(float3(mLocalStd.xy * alpha, mLocalStd.z));
+    // Return the reflection vector r.
+    const float3 rLocal = reflect(-vLocal, mLocal);
+        
+    const float ndf = D_GGX(mLocal.z, a);
+    const float2 av = alpha * vLocal.xy;
+    const float len2 = dot(av, av);
+    const float t = sqrt(len2 + vLocal.z * vLocal.z);
+    if (0.0f <= vLocal.z)
+    {
+        pdf = ndf / (2.0f * (k * vLocal.z + t)); // Eq . 8 * || dm / do ||
+    }
+    else
+    {
+        pdf = ndf * (t - vLocal.z) / (2.0f * len2); // Eq . 7 * || dm / do ||
+    }
+        
+    return rLocal;
+}
+    
+float3 SampleSpecularReflectionVector(inout uint rngState, float3x3 localToWorld, float3 vWorld, float roughness, out float pdf)
+{
+    const float3 nWorld = localToWorld[2];
+            
+    if (roughness < 0.1f)
+    {
+        // If roughness is extremely low, the surface is basically a
+        // perfect mirror.
+        pdf = 1.0f;
+        return reflect(-vWorld, nWorld);
+    }
+
+    //const float3 vLocal = mul(vWorld, transpose(localToWorld));
+    const float3 vLocal = mul(localToWorld, vWorld);
     const float alpha = roughness * roughness;
-    float3 TBN_N = SampleVndfHemisphereBounded(TBN_V, alpha, alpha, xi.x, xi.y);
-    float3 TBN_Rd = reflect(-TBN_V, TBN_N);
-    return normalize(mul(TBN_Rd, TBN));
-}
-
-float3 SampleReflectionVectorReroll(inout uint rngState, float3 V, float3 N, float roughness)
-{
-    float3 rd = SampleReflectionVector(rngState, V, N, roughness);
-    for (uint i = 0; i < 4; i++)
-    {
-        if (dot(rd, N) > 0.0f)
-            break;
-        rd = SampleReflectionVector(rngState, V, N, roughness);
-    }
-    return rd;
+    const float3 rLocal = SampleVndfHemisphereBounded(rngState, vLocal, alpha.xx, pdf);
+    return normalize(mul(rLocal, localToWorld));
 }
 
 #endif  // IMPORTANCE_SAMPLING_H

@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -80,12 +80,6 @@ void DenoiserRenderModule::Init(const json& initData)
         m_ViewMode = static_cast<int32_t>(ViewMode::InputDefault);
     }
 
-	ffx::QueryDescDenoiserGetDefaultSettings queryDefaultSettingsDesc = {};
-	queryDefaultSettingsDesc.device = GetDevice()->GetImpl()->DX12Device();
-    queryDefaultSettingsDesc.defaultSettings = &m_DenoiserSettings;
-    ffx::Query(queryDefaultSettingsDesc);
-
-
     BuildUI();
     EnableModule(true);
     InitContent();
@@ -161,11 +155,19 @@ void DenoiserRenderModule::BuildUI()
 
     if (!m_DenoiserAvailable)
     {
-        uiSection->RegisterUIElement<UIText>("Denoiser is not available on this device.");
+        auto text = uiSection->RegisterUIElement<UIText>("FSR Ray Regeneration is not supported on this device.");
+        text->SetColor({ 1.0f, 1.0f, 0.0f, 1.0f });
+        return;
     }
 
-    uiSection->RegisterUIElement<UICombo>("Version", (int32_t&)m_SelectedDenoiserVersion, m_DenoiserVersionStrings, (bool&)m_DenoiserAvailable, [this](int32_t, int32_t) { m_NeedReInit = true; });
+    //--------------------------------------------------------------------------
+    // Static Configuration
+    //--------------------------------------------------------------------------
+    uiSection->RegisterUIElement<UIText>("");
+    uiSection->RegisterUIElement<UIText>("Static Configuration:");
+    uiSection->RegisterUIElement<UISeparator>();
 
+    uiSection->RegisterUIElement<UICombo>("Version", (int32_t&)m_SelectedDenoiserVersion, m_DenoiserVersionStrings, (bool&)m_DenoiserAvailable, [this](int32_t, int32_t) { m_NeedReInit = true; });
     std::vector<const char*> modes =
     {
         "4 Signals",
@@ -174,16 +176,29 @@ void DenoiserRenderModule::BuildUI()
     };
     uiSection->RegisterUIElement<UICombo>("Mode", (int32_t&)m_DenoiserMode, std::move(modes), (bool&)m_DenoiserAvailable, [this](int32_t, int32_t) { m_NeedReInit = true; });
     uiSection->RegisterUIElement<UICheckBox>("Denoise dominant light visibility", (bool&)m_EnableDominantLightVisibilityDenoising, (bool&)m_DenoiserAvailable, [this](int32_t cur, int32_t old) { m_NeedReInit = true; });
-
     uiSection->RegisterUIElement<UICheckBox>("Enable debugging", (bool&)m_EnableDebugging, (bool&)m_DenoiserAvailable, [this](int32_t cur, int32_t old) { m_NeedReInit = true; });
 
-    uiSection->RegisterUIElement<UISlider<float>>("History rejection strength", (float&)m_DenoiserSettings.historyRejectionStrength, 0.0f, 1.0f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ConfigureSettings(); });
-    uiSection->RegisterUIElement<UISlider<float>>("Cross bilateral normal strength", (float&)m_DenoiserSettings.crossBilateralNormalStrength, 0.0f, 1.0f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ConfigureSettings(); });
-    uiSection->RegisterUIElement<UISlider<float>>("Stability bias", (float&)m_DenoiserSettings.stabilityBias, 0.0f, 1.0f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ConfigureSettings(); });
-    uiSection->RegisterUIElement<UISlider<float>>("Max radiance", (float&)m_DenoiserSettings.maxRadiance, 0.0f, 100000.0f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ConfigureSettings(); });
-    uiSection->RegisterUIElement<UISlider<float>>("Radiance Std Clip", (float&)m_DenoiserSettings.radianceClipStdK, 0.0f, 100000.0f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ConfigureSettings(); });
-    uiSection->RegisterUIElement<UISlider<float>>("Gaussian Kernel Relaxation", (float&)m_DenoiserSettings.gaussianKernelRelaxation, 0.0f, 1.0f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ConfigureSettings(); });
+    //--------------------------------------------------------------------------
+    // Dynamic Configuration
+    //--------------------------------------------------------------------------
+    uiSection->RegisterUIElement<UIText>("");
+    uiSection->RegisterUIElement<UIText>("Dynamic Configuration:");
+    uiSection->RegisterUIElement<UISeparator>();
 
+    uiSection->RegisterUIElement<UISlider<float>>("Cross bilateral normal strength", (float&)m_DenoiserConfiguration.m_CrossBilateralNormalStrength, 0.0f, 1.0f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_CROSS_BILATERAL_NORMAL_STRENGTH); });
+    uiSection->RegisterUIElement<UISlider<float>>("Disocclusion threshold", (float&)m_DenoiserConfiguration.m_DisocclusionThreshold, 0.01f, 0.05f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_DISOCCLUSION_THRESHOLD); });
+    uiSection->RegisterUIElement<UISlider<float>>("Gaussian kernel relaxation", (float&)m_DenoiserConfiguration.m_GaussianKernelRelaxation, 0.0f, 1.0f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_GAUSSIAN_KERNEL_RELAXATION); });
+    uiSection->RegisterUIElement<UISlider<float>>("Max radiance", (float&)m_DenoiserConfiguration.m_MaxRadiance, 0.0f, 65504.0f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_MAX_RADIANCE); });
+    uiSection->RegisterUIElement<UISlider<float>>("Radiance std Clip", (float&)m_DenoiserConfiguration.m_RadianceClipStdK, 0.0f, 65504.0f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_RADIANCE_CLIP_STD_K); });
+    uiSection->RegisterUIElement<UISlider<float>>("Stability bias", (float&)m_DenoiserConfiguration.m_StabilityBias, 0.0f, 1.0f, (bool&)m_DenoiserAvailable, [this](float cur, float old) { ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_STABILITY_BIAS); });
+
+    //--------------------------------------------------------------------------
+    // Display
+    //--------------------------------------------------------------------------
+    uiSection->RegisterUIElement<UIText>("");
+    uiSection->RegisterUIElement<UIText>("Display:");
+    uiSection->RegisterUIElement<UISeparator>();
+    
     std::vector<const char*> viewModes =
     {
         "Default",
@@ -213,7 +228,21 @@ void DenoiserRenderModule::BuildUI()
     uiSection->RegisterUIElement<UICheckBox>("G", (bool&)m_DebugShowChannelG, (bool&)m_DenoiserAvailable, nullptr, true, true);
     uiSection->RegisterUIElement<UICheckBox>("B", (bool&)m_DebugShowChannelB, (bool&)m_DenoiserAvailable, nullptr, true, true);
     uiSection->RegisterUIElement<UICheckBox>("A", (bool&)m_DebugShowChannelA, (bool&)m_DenoiserAvailable, nullptr, true, true);
+    
+    uiSection->RegisterUIElement<UICheckBox>("Show debug view", (bool&)m_ShowDebugView, (bool&)m_EnableDebugging);
+    std::vector<const char*> debugViewModes =
+    {
+        "Overview",
+        "Fullscreen Target"
+    };
+    uiSection->RegisterUIElement<UICombo>("Debug view mode", (int32_t&)m_DebugViewMode, std::move(debugViewModes), (bool&)m_ShowDebugView);
+    uiSection->RegisterUIElement<UISlider<int32_t>>("Debug viewport index", (int32_t&)m_DebugViewport, 0, (FFX_API_DENOISER_DEBUG_VIEW_MAX_VIEWPORTS - 1), (bool&)m_ShowDebugView);
+
+    //--------------------------------------------------------------------------
+
+    uiSection->RegisterUIElement<UIText>("");
     uiSection->RegisterUIElement<UIButton>("Reset", (bool&)m_DenoiserAvailable, [this]() { m_ForceReset = true; });
+    uiSection->RegisterUIElement<UIText>("");
 }
 
 static ffxReturnCode_t AllocateResource(uint32_t effectId,
@@ -334,7 +363,7 @@ bool DenoiserRenderModule::InitDenoiserContext()
     ffx::Query(m_pDenoiserContext, versionQuery);
     CAUDRON_LOG_INFO(L"Queried denoiser version: %i.%i.%i", versionMajor, versionMinor, versionPatch);
 
-    ConfigureSettings();
+    SetDefaultConfiguration();
 
     return retCode == ffx::ReturnCode::Ok;
 }
@@ -371,6 +400,7 @@ bool DenoiserRenderModule::InitResources()
     m_pIndirectSpecular = GetFramework()->GetRenderTexture(L"DenoiserIndirectSpecularTarget");
     m_pIndirectRayDirSpecular = GetFramework()->GetRenderTexture(L"DenoiserIndirectSpecularRayDirTarget");
     m_pDominantLightVisibility = GetFramework()->GetRenderTexture(L"DenoiserDominantLightVisibilityTarget");
+    m_pDebugView = GetFramework()->GetRenderTexture(L"DenoiserDebugViewTarget");
 
     m_pDiffuseAlbedo = GetFramework()->GetRenderTexture(L"DenoiserDiffuseAlbedoTarget");
     m_pSpecularAlbedo = GetFramework()->GetRenderTexture(L"DenoiserSpecularAlbedoTarget");
@@ -401,32 +431,30 @@ bool DenoiserRenderModule::InitResources()
     desc.Name = L"Denoiser_LinearDepth";
     m_pLinearDepth = GetDynamicResourcePool()->CreateRenderTexture(&desc, displaySizeFn);
 
-    desc.Format = ResourceFormat::RGBA16_FLOAT;
-    desc.Name = L"Denoiser_MotionVectors";
-    m_pMotionVectors = GetDynamicResourcePool()->CreateRenderTexture(&desc, displaySizeFn);
-
     m_pPrePassParameterSet->SetTextureSRV(m_pDepthTarget, ViewDimension::Texture2D, 0);
-    m_pPrePassParameterSet->SetTextureSRV(m_pGBufferMotionVectors, ViewDimension::Texture2D, 1);
     m_pPrePassParameterSet->SetTextureUAV(m_pLinearDepth, ViewDimension::Texture2D, 0);
-    m_pPrePassParameterSet->SetTextureUAV(m_pMotionVectors, ViewDimension::Texture2D, 1);
-    m_pPrePassParameterSet->SetTextureUAV(m_pDenoisedDirectDiffuse, ViewDimension::Texture2D, 2);
-    m_pPrePassParameterSet->SetTextureUAV(m_pDenoisedDirectSpecular, ViewDimension::Texture2D, 3);
-    m_pPrePassParameterSet->SetTextureUAV(m_pDenoisedIndirectDiffuse, ViewDimension::Texture2D, 4);
-    m_pPrePassParameterSet->SetTextureUAV(m_pDenoisedIndirectSpecular, ViewDimension::Texture2D, 5);
-    m_pPrePassParameterSet->SetTextureUAV(m_pDenoisedDominantLightVisibility, ViewDimension::Texture2D, 6);
+    m_pPrePassParameterSet->SetTextureUAV(m_pDenoisedDirectDiffuse, ViewDimension::Texture2D, 1);
+    m_pPrePassParameterSet->SetTextureUAV(m_pDenoisedDirectSpecular, ViewDimension::Texture2D, 2);
+    m_pPrePassParameterSet->SetTextureUAV(m_pDenoisedIndirectDiffuse, ViewDimension::Texture2D, 3);
+    m_pPrePassParameterSet->SetTextureUAV(m_pDenoisedIndirectSpecular, ViewDimension::Texture2D, 4);
+    m_pPrePassParameterSet->SetTextureUAV(m_pDenoisedDominantLightVisibility, ViewDimension::Texture2D, 5);
 
-    m_pComposeParameterSet->SetTextureSRV(m_pDenoisedDirectDiffuse, ViewDimension::Texture2D, 0);
-    m_pComposeParameterSet->SetTextureSRV(m_pDenoisedDirectSpecular, ViewDimension::Texture2D, 1);
-    m_pComposeParameterSet->SetTextureSRV(m_pDenoisedIndirectDiffuse, ViewDimension::Texture2D, 2);
-    m_pComposeParameterSet->SetTextureSRV(m_pDenoisedIndirectSpecular, ViewDimension::Texture2D, 3);
-    m_pComposeParameterSet->SetTextureSRV(m_pDenoisedDominantLightVisibility, ViewDimension::Texture2D, 4);
-    m_pComposeParameterSet->SetTextureSRV(m_pSkipSignal, ViewDimension::Texture2D, 5);
-    m_pComposeParameterSet->SetTextureSRV(m_pDiffuseAlbedo, ViewDimension::Texture2D, 6);
-    m_pComposeParameterSet->SetTextureSRV(m_pSpecularAlbedo, ViewDimension::Texture2D, 7);
-    m_pComposeParameterSet->SetTextureSRV(m_pFusedAlbedo, ViewDimension::Texture2D, 8);
-    m_pComposeParameterSet->SetTextureSRV(m_pNormals, ViewDimension::Texture2D, 9);
-    m_pComposeParameterSet->SetTextureSRV(m_pDepthTarget, ViewDimension::Texture2D, 10);
-    m_pComposeParameterSet->SetTextureUAV(m_pColorTarget, ViewDimension::Texture2D, 0);
+    for (uint32_t i = 0; i < m_NumComposeParameterSets; ++i)
+    {
+        m_pComposeParameterSets[i]->SetTextureSRV(m_pDenoisedDirectDiffuse, ViewDimension::Texture2D, 0);
+        m_pComposeParameterSets[i]->SetTextureSRV(m_pDenoisedDirectSpecular, ViewDimension::Texture2D, 1);
+        m_pComposeParameterSets[i]->SetTextureSRV(m_pDenoisedIndirectDiffuse, ViewDimension::Texture2D, 2);
+        m_pComposeParameterSets[i]->SetTextureSRV(m_pDenoisedIndirectSpecular, ViewDimension::Texture2D, 3);
+        m_pComposeParameterSets[i]->SetTextureSRV(m_pDenoisedDominantLightVisibility, ViewDimension::Texture2D, 4);
+        m_pComposeParameterSets[i]->SetTextureSRV(m_pSkipSignal, ViewDimension::Texture2D, 5);
+        m_pComposeParameterSets[i]->SetTextureSRV(m_pDiffuseAlbedo, ViewDimension::Texture2D, 6);
+        m_pComposeParameterSets[i]->SetTextureSRV(m_pSpecularAlbedo, ViewDimension::Texture2D, 7);
+        m_pComposeParameterSets[i]->SetTextureSRV(m_pFusedAlbedo, ViewDimension::Texture2D, 8);
+        m_pComposeParameterSets[i]->SetTextureSRV(m_pNormals, ViewDimension::Texture2D, 9);
+        m_pComposeParameterSets[i]->SetTextureSRV(m_pDepthTarget, ViewDimension::Texture2D, 10);
+        m_pComposeParameterSets[i]->SetTextureUAV(m_pColorTarget, ViewDimension::Texture2D, 0);
+    }
+    m_pCurrentComposeParameterSet = m_pComposeParameterSets[m_pCurrentComposeParameterSetIndex];
 
     return true;
 }
@@ -436,15 +464,12 @@ bool DenoiserRenderModule::InitPipelineObjects()
     RootSignatureDesc prePassRootSignatureDesc;
     prePassRootSignatureDesc.AddConstantBufferView(0, ShaderBindStage::Compute, 1);
     prePassRootSignatureDesc.AddTextureSRVSet(0, ShaderBindStage::Compute, 1); // Depth
-    prePassRootSignatureDesc.AddTextureSRVSet(1, ShaderBindStage::Compute, 1); // Motion Vectors
-    //prePassRootSignatureDesc.AddStaticSamplers(0, ShaderBindStage::Compute, 1, &m_BilinearSampler);
     prePassRootSignatureDesc.AddTextureUAVSet(0, ShaderBindStage::Compute, 1);
     prePassRootSignatureDesc.AddTextureUAVSet(1, ShaderBindStage::Compute, 1);
     prePassRootSignatureDesc.AddTextureUAVSet(2, ShaderBindStage::Compute, 1);
     prePassRootSignatureDesc.AddTextureUAVSet(3, ShaderBindStage::Compute, 1);
     prePassRootSignatureDesc.AddTextureUAVSet(4, ShaderBindStage::Compute, 1);
     prePassRootSignatureDesc.AddTextureUAVSet(5, ShaderBindStage::Compute, 1);
-    prePassRootSignatureDesc.AddTextureUAVSet(6, ShaderBindStage::Compute, 1);
     m_pPrePassRootSignature = RootSignature::CreateRootSignature(L"PrePass_RootSignature", prePassRootSignatureDesc);
     if (!m_pPrePassRootSignature)
         return false;
@@ -488,9 +513,12 @@ bool DenoiserRenderModule::InitPipelineObjects()
     if (!m_pComposePipeline)
         return false;
 
-    m_pComposeParameterSet = ParameterSet::CreateParameterSet(m_pComposeRootSignature);
-    m_pComposeParameterSet->SetRootConstantBufferResource(GetDynamicBufferPool()->GetResource(), sizeof(ComposeConstants), 0);
-    m_pComposeParameterSet->SetRootConstantBufferResource(GetDynamicBufferPool()->GetResource(), sizeof(SceneLightingInformation), 1);
+    for (uint32_t i = 0; i < m_NumComposeParameterSets; ++i)
+    {
+        m_pComposeParameterSets[i] = ParameterSet::CreateParameterSet(m_pComposeRootSignature);
+        m_pComposeParameterSets[i]->SetRootConstantBufferResource(GetDynamicBufferPool()->GetResource(), sizeof(ComposeConstants), 0);
+        m_pComposeParameterSets[i]->SetRootConstantBufferResource(GetDynamicBufferPool()->GetResource(), sizeof(SceneLightingInformation), 1);
+    }
 
     return true;
 }
@@ -503,9 +531,9 @@ bool DenoiserRenderModule::InitContent()
             CameraComponentData cameraComponentData = {};
             cameraComponentData.Name = L"DenoiserCamera";
             cameraComponentData.Type = CameraType::Perspective;
-            cameraComponentData.Zfar = 1024.0f;
+            cameraComponentData.Zfar = FLT_MAX;
             cameraComponentData.Perspective.AspectRatio = GetFramework()->GetAspectRatio();
-            cameraComponentData.Perspective.Yfov = DEG_TO_RAD(80.0f);
+            cameraComponentData.Perspective.Yfov = 0.883572936f;
 
             ContentBlock* pContentBlock = new ContentBlock();
 
@@ -540,13 +568,143 @@ bool DenoiserRenderModule::InitContent()
     return true;
 }
 
-void DenoiserRenderModule::ConfigureSettings()
+void DenoiserRenderModule::ApplyConfiguration()
 {
-    if (m_pDenoiserContext)
+    ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_CROSS_BILATERAL_NORMAL_STRENGTH);
+    ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_STABILITY_BIAS);
+    ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_MAX_RADIANCE);
+    ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_RADIANCE_CLIP_STD_K);
+    ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_GAUSSIAN_KERNEL_RELAXATION);
+    ApplyConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_DISOCCLUSION_THRESHOLD);
+}
+
+void DenoiserRenderModule::ApplyConfiguration(FfxApiConfigureDenoiserKey key)
+{
+    ffx::ConfigureDescDenoiserKeyValue configureDesc = {};
+    configureDesc.key   = key;
+    configureDesc.count = 1u;
+    
+    switch (key)
     {
-        ffx::ConfigureDescDenoiserSettings settings = {};
-        settings.settings = m_DenoiserSettings;
-        ffx::Configure(m_pDenoiserContext, settings);
+
+    case FFX_API_CONFIGURE_DENOISER_KEY_CROSS_BILATERAL_NORMAL_STRENGTH:
+    {
+        configureDesc.data = &m_DenoiserConfiguration.m_CrossBilateralNormalStrength;
+        const ffx::ReturnCode retCode = ffx::Configure(m_pDenoiserContext, configureDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't configure CrossBilateralNormalStrength parameter: %d", (int)retCode);
+        break;
+    }
+    case FFX_API_CONFIGURE_DENOISER_KEY_STABILITY_BIAS:
+    {
+        configureDesc.data = &m_DenoiserConfiguration.m_StabilityBias;
+        const ffx::ReturnCode retCode = ffx::Configure(m_pDenoiserContext, configureDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't configure StabilityBias parameter: %d", (int)retCode);
+        break;
+    }
+    case FFX_API_CONFIGURE_DENOISER_KEY_MAX_RADIANCE:
+    {
+        configureDesc.data = &m_DenoiserConfiguration.m_MaxRadiance;
+        const ffx::ReturnCode retCode = ffx::Configure(m_pDenoiserContext, configureDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't configure MaxRadiance parameter: %d", (int)retCode);
+        break;
+    }
+    case FFX_API_CONFIGURE_DENOISER_KEY_RADIANCE_CLIP_STD_K:
+    {
+        configureDesc.data = &m_DenoiserConfiguration.m_RadianceClipStdK;
+        const ffx::ReturnCode retCode = ffx::Configure(m_pDenoiserContext, configureDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't configure RadianceClipStdK parameter: %d", (int)retCode);
+        break;
+    }
+    case FFX_API_CONFIGURE_DENOISER_KEY_GAUSSIAN_KERNEL_RELAXATION:
+    {
+        configureDesc.data = &m_DenoiserConfiguration.m_GaussianKernelRelaxation;
+        const ffx::ReturnCode retCode = ffx::Configure(m_pDenoiserContext, configureDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't configure GaussianKernelRelaxation parameter: %d", (int)retCode);
+        break;
+    }
+    case FFX_API_CONFIGURE_DENOISER_KEY_DISOCCLUSION_THRESHOLD:
+    {
+        configureDesc.data = &m_DenoiserConfiguration.m_DisocclusionThreshold;
+        const ffx::ReturnCode retCode = ffx::Configure(m_pDenoiserContext, configureDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't configure DisocclusionThreshold parameter: %d", (int)retCode);
+        break;
+    }
+    default:
+    {
+        CauldronAssert(ASSERT_ERROR, false, L"Unknown configuration parameter key: %d", (int)key);
+        break;
+    }
+
+    }
+}
+
+void DenoiserRenderModule::SetDefaultConfiguration()
+{
+    SetDefaultConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_CROSS_BILATERAL_NORMAL_STRENGTH);
+    SetDefaultConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_STABILITY_BIAS);
+    SetDefaultConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_MAX_RADIANCE);
+    SetDefaultConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_RADIANCE_CLIP_STD_K);
+    SetDefaultConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_GAUSSIAN_KERNEL_RELAXATION);
+    SetDefaultConfiguration(FFX_API_CONFIGURE_DENOISER_KEY_DISOCCLUSION_THRESHOLD);
+}
+
+void DenoiserRenderModule::SetDefaultConfiguration(FfxApiConfigureDenoiserKey key)
+{
+    ffx::QueryDescDenoiserGetDefaultKeyValue queryDesc = {};
+    queryDesc.key   = key;
+    queryDesc.count = 1u;
+    
+    switch (key)
+    {
+
+    case FFX_API_CONFIGURE_DENOISER_KEY_CROSS_BILATERAL_NORMAL_STRENGTH:
+    {
+        queryDesc.data = &m_DenoiserConfiguration.m_CrossBilateralNormalStrength;
+        const ffx::ReturnCode retCode = ffx::Query(m_pDenoiserContext, queryDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't query default CrossBilateralNormalStrength parameter: %d", (int)retCode);
+        break;
+    }
+    case FFX_API_CONFIGURE_DENOISER_KEY_STABILITY_BIAS:
+    {
+        queryDesc.data = &m_DenoiserConfiguration.m_StabilityBias;
+        const ffx::ReturnCode retCode = ffx::Query(m_pDenoiserContext, queryDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't query default StabilityBias parameter: %d", (int)retCode);
+        break;
+    }
+    case FFX_API_CONFIGURE_DENOISER_KEY_MAX_RADIANCE:
+    {
+        queryDesc.data = &m_DenoiserConfiguration.m_MaxRadiance;
+        const ffx::ReturnCode retCode = ffx::Query(m_pDenoiserContext, queryDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't query default MaxRadiance parameter: %d", (int)retCode);
+        break;
+    }
+    case FFX_API_CONFIGURE_DENOISER_KEY_RADIANCE_CLIP_STD_K:
+    {
+        queryDesc.data = &m_DenoiserConfiguration.m_RadianceClipStdK;
+        const ffx::ReturnCode retCode = ffx::Query(m_pDenoiserContext, queryDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't query default RadianceClipStdK parameter: %d", (int)retCode);
+        break;
+    }
+    case FFX_API_CONFIGURE_DENOISER_KEY_GAUSSIAN_KERNEL_RELAXATION:
+    {
+        queryDesc.data = &m_DenoiserConfiguration.m_GaussianKernelRelaxation;
+        const ffx::ReturnCode retCode = ffx::Query(m_pDenoiserContext, queryDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't query default GaussianKernelRelaxation parameter: %d", (int)retCode);
+        break;
+    }
+    case FFX_API_CONFIGURE_DENOISER_KEY_DISOCCLUSION_THRESHOLD:
+    {
+        queryDesc.data = &m_DenoiserConfiguration.m_DisocclusionThreshold;
+        const ffx::ReturnCode retCode = ffx::Query(m_pDenoiserContext, queryDesc);
+        CauldronAssert(ASSERT_ERROR, retCode == ffx::ReturnCode::Ok, L"Couldn't query default DisocclusionThreshold parameter: %d", (int)retCode);
+        break;
+    }
+    default:
+    {
+        CauldronAssert(ASSERT_ERROR, false, L"Unknown configuration parameter key: %d", (int)key);
+        break;
+    }
+
     }
 }
 
@@ -557,12 +715,8 @@ void DenoiserRenderModule::DispatchPrePass(double deltaTime, cauldron::CommandLi
 
     PrePassConstants constants = {};
     memcpy(constants.clipToCamera, &pCamera->GetInverseProjection(), sizeof(constants.clipToCamera));
-    memcpy(constants.clipToWorld, &pCamera->GetInverseViewProjection(), sizeof(constants.clipToWorld));
-    memcpy(constants.prevWorldToCamera, &pCamera->GetPreviousView(), sizeof(constants.prevWorldToCamera));
     constants.renderWidth = static_cast<float>(resInfo.RenderWidth);
     constants.renderHeight = static_cast<float>(resInfo.RenderHeight);
-    constants.cameraNear = pCamera->GetNearPlane();
-    constants.cameraFar = pCamera->GetFarPlane();
 
     BufferAddressInfo constantsBufferInfo = GetDynamicBufferPool()->AllocConstantBuffer(sizeof(constants), reinterpret_cast<const void*>(&constants));
     m_pPrePassParameterSet->UpdateRootConstantBuffer(&constantsBufferInfo, 0);
@@ -583,110 +737,140 @@ void DenoiserRenderModule::DispatchDenoiser(double deltaTime, cauldron::CommandL
     const ResolutionInfo& resInfo = GetFramework()->GetResolutionInfo();
     CameraComponent*      pCamera = GetScene()->GetCurrentCamera();
 
-    ffx::DispatchDescDenoiser dispatchDenoiser = {};
-    dispatchDenoiser.commandList          = pCmdList->GetImpl()->DX12CmdList();
-    dispatchDenoiser.renderSize.width     = resInfo.RenderWidth;
-    dispatchDenoiser.renderSize.height    = resInfo.RenderHeight;
-    dispatchDenoiser.motionVectorScale.x  = 1.0f;
-    dispatchDenoiser.motionVectorScale.y  = 1.0f;
+    // Needs to persist in the ::ffxDispatch scope.
+    ffx::DispatchDescDenoiser dispatchDesc = {};
+    dispatchDesc.commandList          = pCmdList->GetImpl()->DX12CmdList();
+    dispatchDesc.renderSize.width     = resInfo.RenderWidth;
+    dispatchDesc.renderSize.height    = resInfo.RenderHeight;
+    dispatchDesc.motionVectorScale.x  = 1.0f; // Motion Vectors are expressed in UV space.
+    dispatchDesc.motionVectorScale.y  = 1.0f; // Motion Vectors are expressed in UV space.
+    dispatchDesc.motionVectorScale.z  = 1.0f;
 
-    const Vec2& jitterOffsets  = pCamera->GetJitterOffsets();
+    const Vec2 jitterOffsets  = pCamera->GetJitterOffsets();
     const Vec3 cameraPosition = pCamera->GetCameraPos();
     const Vec3 cameraPositionDelta = m_PrevCameraPosition - cameraPosition;
     const Vec3 cameraRight    = pCamera->GetCameraRight();
     const Vec3 cameraUp       = pCamera->GetCameraUp();
     const Vec3 cameraForward  = pCamera->GetDirection().getXYZ();
 
-    dispatchDenoiser.jitterOffsets          = {jitterOffsets.getX(), jitterOffsets.getY()};
-    dispatchDenoiser.cameraPositionDelta    = {cameraPositionDelta.getX(), cameraPositionDelta.getY(), cameraPositionDelta.getZ()};
-    dispatchDenoiser.cameraRight            = {cameraRight.getX(), cameraRight.getY(), cameraRight.getZ()};
-    dispatchDenoiser.cameraUp               = {cameraUp.getX(), cameraUp.getY(), cameraUp.getZ()};
-    dispatchDenoiser.cameraForward          = {cameraForward.getX(), cameraForward.getY(), cameraForward.getZ()};
-    dispatchDenoiser.cameraAspectRatio      = GetFramework()->GetAspectRatio();
-    dispatchDenoiser.cameraNear             = pCamera->GetNearPlane();
-    dispatchDenoiser.cameraFar              = pCamera->GetFarPlane();
-    dispatchDenoiser.cameraFovAngleVertical = pCamera->GetFovY();
-    dispatchDenoiser.deltaTime              = static_cast<float>(deltaTime);
-    dispatchDenoiser.frameIndex             = static_cast<uint32_t>(GetFramework()->GetFrameID());
+    dispatchDesc.jitterOffsets          = { jitterOffsets.getX(), jitterOffsets.getY() };
+    dispatchDesc.cameraPositionDelta    = { cameraPositionDelta.getX(), cameraPositionDelta.getY(), cameraPositionDelta.getZ() };
+    dispatchDesc.cameraRight            = { cameraRight.getX(), cameraRight.getY(), cameraRight.getZ() };
+    dispatchDesc.cameraUp               = { cameraUp.getX(), cameraUp.getY(), cameraUp.getZ() };
+    // Linear depths and depth deltas are computed using absolute linear depth
+    // rather than signed linear depth.
+    // Cauldron cameras look along the -Z axis in view space, so the sign must be
+    // flipped to obtain the physical forward viewing direction.
+    dispatchDesc.cameraForward          = { -cameraForward.getX(), -cameraForward.getY(), -cameraForward.getZ() };
+    dispatchDesc.cameraAspectRatio      = GetFramework()->GetAspectRatio();
+    dispatchDesc.cameraNear             = pCamera->GetNearPlane();
+    dispatchDesc.cameraFar              = pCamera->GetFarPlane();
+    dispatchDesc.cameraFovAngleVertical = pCamera->GetFovY();
+    dispatchDesc.deltaTime              = static_cast< float >(deltaTime);
+    dispatchDesc.frameIndex             = static_cast< uint32_t >(GetFramework()->GetFrameID());
 
-    dispatchDenoiser.flags = 0;
+    dispatchDesc.flags = 0;
     if (reset)
-        dispatchDenoiser.flags |= FFX_DENOISER_DISPATCH_RESET;
+    {
+        dispatchDesc.flags |= FFX_DENOISER_DISPATCH_RESET;
+    }
 
-    dispatchDenoiser.linearDepth = SDKWrapper::ffxGetResourceApi(m_pLinearDepth->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-    dispatchDenoiser.motionVectors = SDKWrapper::ffxGetResourceApi(m_pMotionVectors->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-    dispatchDenoiser.normals = SDKWrapper::ffxGetResourceApi(m_pNormals->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-    dispatchDenoiser.specularAlbedo = SDKWrapper::ffxGetResourceApi(m_pSpecularAlbedo->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-    dispatchDenoiser.diffuseAlbedo = SDKWrapper::ffxGetResourceApi(m_pDiffuseAlbedo->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+    dispatchDesc.linearDepth    = SDKWrapper::ffxGetResourceApi(m_pLinearDepth->GetResource(),          FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+    dispatchDesc.motionVectors  = SDKWrapper::ffxGetResourceApi(m_pGBufferMotionVectors->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+    dispatchDesc.normals        = SDKWrapper::ffxGetResourceApi(m_pNormals->GetResource(),              FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+    dispatchDesc.specularAlbedo = SDKWrapper::ffxGetResourceApi(m_pSpecularAlbedo->GetResource(),       FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+    dispatchDesc.diffuseAlbedo  = SDKWrapper::ffxGetResourceApi(m_pDiffuseAlbedo->GetResource(),        FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
 
-    ffx::DispatchDescDenoiserInputDominantLight dispatchDenoiserInputsDominantLight = {};
+    ffxDispatchDescHeader* prevHeader = &dispatchDesc.header;
+    const auto link = [&prevHeader](auto& desc)
+    {
+        ffxDispatchDescHeader* const nextHeader = &desc.header;
+        prevHeader->pNext = nextHeader;
+        prevHeader = nextHeader;
+    };
+
+    // Need to persist in the ::ffxDispatch scope.
+    ffx::DispatchDescDenoiserInput4Signals dispatchInput4Signals = {};
+    ffx::DispatchDescDenoiserInput2Signals dispatchInput2Signals = {};
+    ffx::DispatchDescDenoiserInput1Signal  dispatchInput1Signal  = {};
+    switch (m_DenoiserMode)
+    {
+
+    case FFX_DENOISER_MODE_4_SIGNALS:
+    {
+        dispatchInput4Signals.indirectSpecularRadiance.input  = SDKWrapper::ffxGetResourceApi(m_pIndirectSpecular->GetResource(),         FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        dispatchInput4Signals.indirectSpecularRadiance.output = SDKWrapper::ffxGetResourceApi(m_pDenoisedIndirectSpecular->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+
+        dispatchInput4Signals.indirectDiffuseRadiance.input   = SDKWrapper::ffxGetResourceApi(m_pIndirectDiffuse->GetResource(),          FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        dispatchInput4Signals.indirectDiffuseRadiance.output  = SDKWrapper::ffxGetResourceApi(m_pDenoisedIndirectDiffuse->GetResource(),  FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+
+        dispatchInput4Signals.directSpecularRadiance.input    = SDKWrapper::ffxGetResourceApi(m_pDirectSpecular->GetResource(),           FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        dispatchInput4Signals.directSpecularRadiance.output   = SDKWrapper::ffxGetResourceApi(m_pDenoisedDirectSpecular->GetResource(),   FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+
+        dispatchInput4Signals.directDiffuseRadiance.input     = SDKWrapper::ffxGetResourceApi(m_pDirectDiffuse->GetResource(),            FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        dispatchInput4Signals.directDiffuseRadiance.output    = SDKWrapper::ffxGetResourceApi(m_pDenoisedDirectDiffuse->GetResource(),    FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+        
+        link(dispatchInput4Signals);
+
+        break;
+    }
+    case FFX_DENOISER_MODE_2_SIGNALS:
+    {
+        dispatchInput2Signals.specularRadiance.input         = SDKWrapper::ffxGetResourceApi(m_pIndirectSpecular->GetResource(),         FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        dispatchInput2Signals.specularRadiance.output        = SDKWrapper::ffxGetResourceApi(m_pDenoisedIndirectSpecular->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+
+        dispatchInput2Signals.diffuseRadiance.input          = SDKWrapper::ffxGetResourceApi(m_pIndirectDiffuse->GetResource(),          FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        dispatchInput2Signals.diffuseRadiance.output         = SDKWrapper::ffxGetResourceApi(m_pDenoisedIndirectDiffuse->GetResource(),  FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+        
+        link(dispatchInput2Signals);
+
+        break;
+    }
+    case FFX_DENOISER_MODE_1_SIGNAL:
+    {
+        dispatchInput1Signal.radiance.input                  = SDKWrapper::ffxGetResourceApi(m_pIndirectSpecular->GetResource(),         FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        dispatchInput1Signal.radiance.output                 = SDKWrapper::ffxGetResourceApi(m_pDenoisedIndirectSpecular->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+        dispatchInput1Signal.fusedAlbedo                     = SDKWrapper::ffxGetResourceApi(m_pFusedAlbedo->GetResource(),              FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        
+        link(dispatchInput1Signal);
+
+        break;
+    }
+    default:
+    {
+        CAULDRON_ASSERT(false);
+        break;
+    }
+
+    }
+
+    // Need to persist in the ::ffxDispatch scope.
+    ffx::DispatchDescDenoiserInputDominantLight dispatchInputsDominantLight = {};
     if (m_EnableDominantLightVisibilityDenoising)
     {
-        dispatchDenoiserInputsDominantLight.dominantLightVisibility.input = SDKWrapper::ffxGetResourceApi(m_pDominantLightVisibility->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-        dispatchDenoiserInputsDominantLight.dominantLightVisibility.output = SDKWrapper::ffxGetResourceApi(m_pDenoisedDominantLightVisibility->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-        dispatchDenoiserInputsDominantLight.dominantLightEmission = { dominantLightEmission.getX(), dominantLightEmission.getY(), dominantLightEmission.getZ() };
-        dispatchDenoiserInputsDominantLight.dominantLightDirection = { -dominantLightDir.getX(), -dominantLightDir.getY(), -dominantLightDir.getZ() };
+        dispatchInputsDominantLight.dominantLightVisibility.input = SDKWrapper::ffxGetResourceApi(m_pDominantLightVisibility->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        dispatchInputsDominantLight.dominantLightVisibility.output = SDKWrapper::ffxGetResourceApi(m_pDenoisedDominantLightVisibility->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+        dispatchInputsDominantLight.dominantLightEmission = { dominantLightEmission.getX(), dominantLightEmission.getY(), dominantLightEmission.getZ() };
+        dispatchInputsDominantLight.dominantLightDirection = { -dominantLightDir.getX(), -dominantLightDir.getY(), -dominantLightDir.getZ() };
+        
+        link(dispatchInputsDominantLight);
     }
 
-    if (m_DenoiserMode == FFX_DENOISER_MODE_1_SIGNAL)
+    // Need to persist in the ::ffxDispatch scope.
+    ffx::DispatchDescDenoiserDebugView dispatchDebugView = {};
+    if (m_ShowDebugView)
     {
-        ffx::DispatchDescDenoiserInput1Signal dispatchDenoiserInputs = {};
-        dispatchDenoiserInputs.radiance.input = SDKWrapper::ffxGetResourceApi(m_pIndirectSpecular->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-        dispatchDenoiserInputs.radiance.output = SDKWrapper::ffxGetResourceApi(m_pDenoisedIndirectSpecular->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-        dispatchDenoiserInputs.fusedAlbedo = SDKWrapper::ffxGetResourceApi(m_pFusedAlbedo->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
+        dispatchDebugView.output = SDKWrapper::ffxGetResourceApi(m_pDebugView->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+        dispatchDebugView.outputSize = { m_pDebugView->GetDesc().Width, m_pDebugView->GetDesc().Height };
+        dispatchDebugView.mode = m_DebugViewMode;
+        dispatchDebugView.viewportIndex = (uint32_t)m_DebugViewport;
 
-        if (m_EnableDominantLightVisibilityDenoising)
-        {
-            ffx::Dispatch(m_pDenoiserContext, dispatchDenoiser, dispatchDenoiserInputs, dispatchDenoiserInputsDominantLight);
-        }
-        else
-        {
-            ffx::Dispatch(m_pDenoiserContext, dispatchDenoiser, dispatchDenoiserInputs);
-        }
+        link(dispatchDebugView);
     }
-    else if (m_DenoiserMode == FFX_DENOISER_MODE_2_SIGNALS)
-    {
-        ffx::DispatchDescDenoiserInput2Signals dispatchDenoiserInputs = {};
-        dispatchDenoiserInputs.specularRadiance.input = SDKWrapper::ffxGetResourceApi(m_pIndirectSpecular->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-        dispatchDenoiserInputs.specularRadiance.output = SDKWrapper::ffxGetResourceApi(m_pDenoisedIndirectSpecular->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
 
-        dispatchDenoiserInputs.diffuseRadiance.input = SDKWrapper::ffxGetResourceApi(m_pIndirectDiffuse->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-        dispatchDenoiserInputs.diffuseRadiance.output = SDKWrapper::ffxGetResourceApi(m_pDenoisedIndirectDiffuse->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-
-        if (m_EnableDominantLightVisibilityDenoising)
-        {
-            ffx::Dispatch(m_pDenoiserContext, dispatchDenoiser, dispatchDenoiserInputs, dispatchDenoiserInputsDominantLight);
-        }
-        else
-        {
-            ffx::Dispatch(m_pDenoiserContext, dispatchDenoiser, dispatchDenoiserInputs);
-        }
-    }
-    else //if (m_DenoiserMode == FFX_DENOISER_MODE_4_SIGNALS)
-    {
-        ffx::DispatchDescDenoiserInput4Signals dispatchDenoiserInputs = {};
-        dispatchDenoiserInputs.indirectSpecularRadiance.input = SDKWrapper::ffxGetResourceApi(m_pIndirectSpecular->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-        dispatchDenoiserInputs.indirectSpecularRadiance.output = SDKWrapper::ffxGetResourceApi(m_pDenoisedIndirectSpecular->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-
-        dispatchDenoiserInputs.indirectDiffuseRadiance.input = SDKWrapper::ffxGetResourceApi(m_pIndirectDiffuse->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-        dispatchDenoiserInputs.indirectDiffuseRadiance.output = SDKWrapper::ffxGetResourceApi(m_pDenoisedIndirectDiffuse->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-
-        dispatchDenoiserInputs.directSpecularRadiance.input = SDKWrapper::ffxGetResourceApi(m_pDirectSpecular->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-        dispatchDenoiserInputs.directSpecularRadiance.output = SDKWrapper::ffxGetResourceApi(m_pDenoisedDirectSpecular->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-
-        dispatchDenoiserInputs.directDiffuseRadiance.input = SDKWrapper::ffxGetResourceApi(m_pDirectDiffuse->GetResource(), FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-        dispatchDenoiserInputs.directDiffuseRadiance.output = SDKWrapper::ffxGetResourceApi(m_pDenoisedDirectDiffuse->GetResource(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-
-        if (m_EnableDominantLightVisibilityDenoising)
-        {
-            ffx::Dispatch(m_pDenoiserContext, dispatchDenoiser, dispatchDenoiserInputs, dispatchDenoiserInputsDominantLight);
-        }
-        else
-        {
-            ffx::ReturnCode ret = ffx::Dispatch(m_pDenoiserContext, dispatchDenoiser, dispatchDenoiserInputs);
-            CAULDRON_ASSERT(ret == ffx::ReturnCode::Ok);
-        }
-    }
+    // ffx::Dispatch cannot be used because it will reset pNext.
+    ffxReturnCode_t ret = ::ffxDispatch(&m_pDenoiserContext, &dispatchDesc.header);
+    CAULDRON_ASSERT(ret == FFX_API_RETURN_OK);
 
     // Reset all descriptor heaps
     SetAllResourceViewHeaps(pCmdList);
@@ -699,11 +883,15 @@ void DenoiserRenderModule::DispatchComposition(double deltaTime, cauldron::Comma
     const ResolutionInfo&   resInfo = GetFramework()->GetResolutionInfo();
     CameraComponent*        pCamera = GetScene()->GetCurrentCamera();
 
-    m_pComposeParameterSet->SetTextureSRV(m_pDenoisedDirectDiffuse, ViewDimension::Texture2D, 0);
-    m_pComposeParameterSet->SetTextureSRV(m_pDenoisedDirectSpecular, ViewDimension::Texture2D, 1);
-    m_pComposeParameterSet->SetTextureSRV(m_pDenoisedIndirectDiffuse, ViewDimension::Texture2D, 2);
-    m_pComposeParameterSet->SetTextureSRV(m_pDenoisedIndirectSpecular, ViewDimension::Texture2D, 3);
-    m_pComposeParameterSet->SetTextureSRV(m_pDenoisedDominantLightVisibility, ViewDimension::Texture2D, 4);
+    // triple buffered to work around CPU/GPU overlap
+    m_pCurrentComposeParameterSetIndex = (m_pCurrentComposeParameterSetIndex + 1) % m_NumComposeParameterSets;
+    m_pCurrentComposeParameterSet = m_pComposeParameterSets[m_pCurrentComposeParameterSetIndex];
+
+    m_pCurrentComposeParameterSet->SetTextureSRV(m_pDenoisedDirectDiffuse, ViewDimension::Texture2D, 0);
+    m_pCurrentComposeParameterSet->SetTextureSRV(m_pDenoisedDirectSpecular, ViewDimension::Texture2D, 1);
+    m_pCurrentComposeParameterSet->SetTextureSRV(m_pDenoisedIndirectDiffuse, ViewDimension::Texture2D, 2);
+    m_pCurrentComposeParameterSet->SetTextureSRV(m_pDenoisedIndirectSpecular, ViewDimension::Texture2D, 3);
+    m_pCurrentComposeParameterSet->SetTextureSRV(m_pDenoisedDominantLightVisibility, ViewDimension::Texture2D, 4);
 
     ComposeConstants constants = {};
     constants.channelContrib = Vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -729,11 +917,11 @@ void DenoiserRenderModule::DispatchComposition(double deltaTime, cauldron::Comma
         constants.indirectDiffuseContrib  = 1.0f;
         constants.indirectSpecularContrib = 1.0f;
         constants.skipContrib             = 1.0f;
-        m_pComposeParameterSet->SetTextureSRV(m_pDirectDiffuse, ViewDimension::Texture2D, 0);
-        m_pComposeParameterSet->SetTextureSRV(m_pDirectSpecular, ViewDimension::Texture2D, 1);
-        m_pComposeParameterSet->SetTextureSRV(m_pIndirectDiffuse, ViewDimension::Texture2D, 2);
-        m_pComposeParameterSet->SetTextureSRV(m_pIndirectSpecular, ViewDimension::Texture2D, 3);
-        m_pComposeParameterSet->SetTextureSRV(m_pDominantLightVisibility, ViewDimension::Texture2D, 4);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pDirectDiffuse, ViewDimension::Texture2D, 0);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pDirectSpecular, ViewDimension::Texture2D, 1);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pIndirectDiffuse, ViewDimension::Texture2D, 2);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pIndirectSpecular, ViewDimension::Texture2D, 3);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pDominantLightVisibility, ViewDimension::Texture2D, 4);
         break;
     case ViewMode::Direct:
         constants.directDiffuseContrib = 1.0f;
@@ -758,33 +946,33 @@ void DenoiserRenderModule::DispatchComposition(double deltaTime, cauldron::Comma
     case ViewMode::InputDirect:
         constants.directDiffuseContrib = 1.0f;
         constants.directSpecularContrib = 1.0f;
-        m_pComposeParameterSet->SetTextureSRV(m_pDirectDiffuse, ViewDimension::Texture2D, 0);
-        m_pComposeParameterSet->SetTextureSRV(m_pDirectSpecular, ViewDimension::Texture2D, 1);
-        m_pComposeParameterSet->SetTextureSRV(m_pDominantLightVisibility, ViewDimension::Texture2D, 4);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pDirectDiffuse, ViewDimension::Texture2D, 0);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pDirectSpecular, ViewDimension::Texture2D, 1);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pDominantLightVisibility, ViewDimension::Texture2D, 4);
         break;
     case ViewMode::InputDirectDiffuse:
         constants.directDiffuseContrib = 1.0f;
-        m_pComposeParameterSet->SetTextureSRV(m_pDirectDiffuse, ViewDimension::Texture2D, 0);
-        m_pComposeParameterSet->SetTextureSRV(m_pDominantLightVisibility, ViewDimension::Texture2D, 4);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pDirectDiffuse, ViewDimension::Texture2D, 0);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pDominantLightVisibility, ViewDimension::Texture2D, 4);
         break;
     case ViewMode::InputDirectSpecular:
         constants.directSpecularContrib = 1.0f;
-        m_pComposeParameterSet->SetTextureSRV(m_pDirectSpecular, ViewDimension::Texture2D, 1);
-        m_pComposeParameterSet->SetTextureSRV(m_pDominantLightVisibility, ViewDimension::Texture2D, 4);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pDirectSpecular, ViewDimension::Texture2D, 1);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pDominantLightVisibility, ViewDimension::Texture2D, 4);
         break;
     case ViewMode::InputIndirect:
         constants.indirectDiffuseContrib  = 1.0f;
         constants.indirectSpecularContrib = 1.0f;
-        m_pComposeParameterSet->SetTextureSRV(m_pIndirectDiffuse, ViewDimension::Texture2D, 2);
-        m_pComposeParameterSet->SetTextureSRV(m_pIndirectSpecular, ViewDimension::Texture2D, 3);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pIndirectDiffuse, ViewDimension::Texture2D, 2);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pIndirectSpecular, ViewDimension::Texture2D, 3);
         break;
     case ViewMode::InputIndirectDiffuse:
         constants.indirectDiffuseContrib = 1.0f;
-        m_pComposeParameterSet->SetTextureSRV(m_pIndirectDiffuse, ViewDimension::Texture2D, 2);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pIndirectDiffuse, ViewDimension::Texture2D, 2);
         break;
     case ViewMode::InputIndirectSpecular:
         constants.indirectSpecularContrib = 1.0f;
-        m_pComposeParameterSet->SetTextureSRV(m_pIndirectSpecular, ViewDimension::Texture2D, 3);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pIndirectSpecular, ViewDimension::Texture2D, 3);
         break;
     case ViewMode::InputLinearDepth:
         constants.directDiffuseContrib = 1.0f;
@@ -795,14 +983,14 @@ void DenoiserRenderModule::DispatchComposition(double deltaTime, cauldron::Comma
         constants.rangeMin = 0.0f;
         constants.rangeMax = 100.0f;
         constants.channelContrib = Vec4((float)m_DebugShowChannelR, (float)m_DebugShowChannelG, (float)m_DebugShowChannelB, (float)m_DebugShowChannelA);
-        m_pComposeParameterSet->SetTextureSRV(m_pLinearDepth, ViewDimension::Texture2D, 0);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pLinearDepth, ViewDimension::Texture2D, 0);
         break;
     case ViewMode::InputMotionVectors:
         constants.directDiffuseContrib = 1.0f;
         constants.flags |= COMPOSE_DEBUG_MODE;
         constants.flags |= COMPOSE_DEBUG_ONLY_FIRST_RESOURCE;
         constants.channelContrib = Vec4((float)m_DebugShowChannelR, (float)m_DebugShowChannelG, (float)m_DebugShowChannelB, (float)m_DebugShowChannelA);
-        m_pComposeParameterSet->SetTextureSRV(m_pMotionVectors, ViewDimension::Texture2D, 0);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pGBufferMotionVectors, ViewDimension::Texture2D, 0);
         break;
     case ViewMode::InputNormals:
         constants.directDiffuseContrib = 1.0f;
@@ -810,7 +998,7 @@ void DenoiserRenderModule::DispatchComposition(double deltaTime, cauldron::Comma
         constants.flags |= COMPOSE_DEBUG_DECODE_NORMALS;
         constants.flags |= COMPOSE_DEBUG_ONLY_FIRST_RESOURCE;
         constants.channelContrib = Vec4((float)m_DebugShowChannelR, (float)m_DebugShowChannelG, (float)m_DebugShowChannelB, (float)m_DebugShowChannelA);
-        m_pComposeParameterSet->SetTextureSRV(m_pNormals, ViewDimension::Texture2D, 0);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pNormals, ViewDimension::Texture2D, 0);
         break;
     case ViewMode::InputSpecularAlbedo:
         constants.directDiffuseContrib = 1.0f;
@@ -818,7 +1006,7 @@ void DenoiserRenderModule::DispatchComposition(double deltaTime, cauldron::Comma
         constants.flags |= COMPOSE_DEBUG_DECODE_SQRT;
         constants.flags |= COMPOSE_DEBUG_ONLY_FIRST_RESOURCE;
         constants.channelContrib = Vec4((float)m_DebugShowChannelR, (float)m_DebugShowChannelG, (float)m_DebugShowChannelB, (float)m_DebugShowChannelA);
-        m_pComposeParameterSet->SetTextureSRV(m_pSpecularAlbedo, ViewDimension::Texture2D, 0);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pSpecularAlbedo, ViewDimension::Texture2D, 0);
         break;
     case ViewMode::InputDiffuseAlbedo:
         constants.directDiffuseContrib = 1.0f;
@@ -826,7 +1014,7 @@ void DenoiserRenderModule::DispatchComposition(double deltaTime, cauldron::Comma
         constants.flags |= COMPOSE_DEBUG_DECODE_SQRT;
         constants.flags |= COMPOSE_DEBUG_ONLY_FIRST_RESOURCE;
         constants.channelContrib = Vec4((float)m_DebugShowChannelR, (float)m_DebugShowChannelG, (float)m_DebugShowChannelB, (float)m_DebugShowChannelA);
-        m_pComposeParameterSet->SetTextureSRV(m_pDiffuseAlbedo, ViewDimension::Texture2D, 0);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pDiffuseAlbedo, ViewDimension::Texture2D, 0);
         break;
     case ViewMode::InputFusedAlbedo:
         constants.directDiffuseContrib = 1.0f;
@@ -834,7 +1022,7 @@ void DenoiserRenderModule::DispatchComposition(double deltaTime, cauldron::Comma
         constants.flags |= COMPOSE_DEBUG_DECODE_SQRT;
         constants.flags |= COMPOSE_DEBUG_ONLY_FIRST_RESOURCE;
         constants.channelContrib = Vec4((float)m_DebugShowChannelR, (float)m_DebugShowChannelG, (float)m_DebugShowChannelB, (float)m_DebugShowChannelA);
-        m_pComposeParameterSet->SetTextureSRV(m_pFusedAlbedo, ViewDimension::Texture2D, 0);
+        m_pCurrentComposeParameterSet->SetTextureSRV(m_pFusedAlbedo, ViewDimension::Texture2D, 0);
         break;
     case ViewMode::InputSkipSignal:
         constants.skipContrib = 1.0f;
@@ -850,12 +1038,12 @@ void DenoiserRenderModule::DispatchComposition(double deltaTime, cauldron::Comma
     constants.invRenderSize[1] = 1.0f / resInfo.RenderHeight;
 
     BufferAddressInfo constantsBufferInfo = GetDynamicBufferPool()->AllocConstantBuffer(sizeof(constants), reinterpret_cast<const void*>(&constants));
-    m_pComposeParameterSet->UpdateRootConstantBuffer(&constantsBufferInfo, 0);
+    m_pCurrentComposeParameterSet->UpdateRootConstantBuffer(&constantsBufferInfo, 0);
 
     BufferAddressInfo lightingBufferInfo = GetDynamicBufferPool()->AllocConstantBuffer(sizeof(sceneLightInfo), reinterpret_cast<const void*>(&sceneLightInfo));
-    m_pComposeParameterSet->UpdateRootConstantBuffer(&lightingBufferInfo, 1);
+    m_pCurrentComposeParameterSet->UpdateRootConstantBuffer(&lightingBufferInfo, 1);
 
-    m_pComposeParameterSet->Bind(pCmdList, m_pComposePipeline);
+    m_pCurrentComposeParameterSet->Bind(pCmdList, m_pComposePipeline);
     SetPipelineState(pCmdList, m_pComposePipeline);
     const uint32_t numGroupsX = (resInfo.RenderWidth + 7) / 8;
     const uint32_t numGroupsY = (resInfo.RenderHeight + 7) / 8;

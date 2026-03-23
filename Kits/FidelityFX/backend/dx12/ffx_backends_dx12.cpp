@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -36,9 +36,6 @@
 #if defined(FFX_RADIANCECACHE)
 #include "../../radiancecache/include/ffx_radiancecache.h"
 #endif // defined(FFX_RADIANCECACHE)
-#if defined(FFX_AMBIENTOCCLUSION)
-#include "../../ambientocclusion/include/ffx_ambientocclusion.h"
-#endif // defined(FFX_AMBIENTOCCLUSION)
 
 #include "ffx_dx12.h"
 
@@ -52,7 +49,9 @@ ffxReturnCode_t CreateBackend(const ffxCreateContextDescHeader *desc, bool& back
         {
             // check for double backend just to make sure.
             if (backendFound)
+            {
                 return FFX_API_RETURN_ERROR;
+            }
             backendFound = true;
 
             const auto *backendDesc = reinterpret_cast<const ffxCreateBackendDX12Desc*>(it);
@@ -67,11 +66,11 @@ ffxReturnCode_t CreateBackend(const ffxCreateContextDescHeader *desc, bool& back
         case FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_DX12_ALLOCATION_CALLBACKS:
         {
             const auto* allocationCallbacksDesc = reinterpret_cast<const ffxCreateBackendDX12AllocationCallbacksDesc*>(it);
-			if (allocationCallbacksDesc->pfnFfxResourceAllocator && allocationCallbacksDesc->pfnFfxResourceDeallocator)
-			{
+            if (allocationCallbacksDesc->pfnFfxResourceAllocator && allocationCallbacksDesc->pfnFfxResourceDeallocator)
+            {
                 ffxRegisterResourceAllocatorDX12(allocationCallbacksDesc->pfnFfxResourceAllocator);
                 ffxRegisterResourceDeallocatorDX12(allocationCallbacksDesc->pfnFfxResourceDeallocator);
-			}
+            }
             if (allocationCallbacksDesc->pfnFfxHeapAllocator && allocationCallbacksDesc->pfnFfxHeapDeallocator)
             {
                 ffxRegisterHeapAllocatorDX12(allocationCallbacksDesc->pfnFfxHeapAllocator);
@@ -113,17 +112,7 @@ void* GetDevice(const ffxApiHeader* desc)
         {
             return reinterpret_cast<const ffxQueryDescDenoiserGetVersion*>(it)->device;
         }
-        case FFX_API_QUERY_DESC_TYPE_DENOISER_GET_DEFAULT_SETTINGS:
-        {
-            return reinterpret_cast<const ffxQueryDescDenoiserGetDefaultSettings*>(it)->device;
-        }
 #endif //#if defined(FFX_DENOISER)
-#if defined(FFX_AMBIENTOCCLUSION)
-        case FFX_API_QUERY_DESC_TYPE_AMBIENTOCCLUSION_GPU_MEMORY_USAGE:
-        {
-            return reinterpret_cast<const ffxQueryDescAmbientOcclusionGetGPUMemoryUsage*>(it)->device;
-        }
-#endif //#if defined(FFX_AMBIENTOCCLUSION)
         case FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_DX12:
         {
             return reinterpret_cast<const ffxCreateBackendDX12Desc*>(it)->device;
@@ -162,4 +151,9 @@ void* GetDevice(const ffxApiHeader* desc)
         }
     }
     return nullptr;
+}
+
+FfxErrorCode GetResourceSizeFromDescription(FfxDevice device, const FfxCreateResourceDescription* createResourceDescription, uint64_t* sizeInBytes, uint64_t* alignment)
+{
+    return ffxGetResourceSizeFromDescriptionDX12(device, createResourceDescription, sizeInBytes, alignment);
 }

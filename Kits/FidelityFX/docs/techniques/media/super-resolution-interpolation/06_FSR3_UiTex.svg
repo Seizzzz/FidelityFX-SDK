@@ -622,28 +622,19 @@
          stroke-miterlimit="8"
          fill="#ed1c24"
          id="rect21" />
-      <g
-         clip-path="url(#clip0-19)"
-         transform="matrix(1.04987e-4,0,0,1.04987e-4,363,270)"
-         id="g22">
-        <g
-           clip-path="url(#clip2-9)"
-           transform="matrix(1.00495,0,0,1,0,-0.25)"
-           id="g21">
-          <use
-             width="100%"
-             height="100%"
-             xlink:href="#img1-5"
-             transform="scale(5228.01)"
-             id="use21" />
-        </g>
-      </g>
       <text
          fill="#ffffff"
          font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
          font-weight="400"
          font-size="19px"
-         transform="translate(398.207,366)"
+         transform="translate(385.207,316)"
+         id="text37">AMD FSR™</text>
+      <text
+         fill="#ffffff"
+         font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
+         font-weight="400"
+         font-size="19px"
+         transform="translate(398.207,346)"
          id="text22">Upscale</text>
       <rect
          x="561.5"
@@ -824,28 +815,19 @@
          stroke-miterlimit="8"
          fill="#ed1c24"
          id="rect36" />
-      <g
-         clip-path="url(#clip3-6)"
-         transform="matrix(1.04987e-4,0,0,1.04987e-4,759,398)"
-         id="g37">
-        <g
-           clip-path="url(#clip4-9)"
-           transform="matrix(1.00495,0,0,1,-0.5,0)"
-           id="g36">
-          <use
-             width="100%"
-             height="100%"
-             xlink:href="#img1-5"
-             transform="scale(5228.01)"
-             id="use36" />
-        </g>
-      </g>
       <text
          fill="#ffffff"
          font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
          font-weight="400"
          font-size="19px"
-         transform="translate(758.781,494)"
+         transform="translate(780.781,444)"
+         id="text37">AMD FSR™</text>
+      <text
+         fill="#ffffff"
+         font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
+         font-weight="400"
+         font-size="19px"
+         transform="translate(750.781,464)"
          id="text37">Frame generation</text>
       <text
          fill="#231e1f"
@@ -854,7 +836,7 @@
          font-size="19px"
          id="text38"
          x="944.99371"
-         y="93.612221">FSR 3 Async frame pacing thread</text>
+         y="93.612221">FSR™ Async frame pacing thread</text>
       <rect
          x="986.5"
          y="209.5"
@@ -865,28 +847,19 @@
          stroke-miterlimit="8"
          fill="#ed1c24"
          id="rect38" />
-      <g
-         clip-path="url(#clip5-7)"
-         transform="matrix(1.04987e-4,0,0,1.04987e-4,999,215)"
-         id="g39">
-        <g
-           clip-path="url(#clip6-6)"
-           transform="matrix(1.00495,0,0,1,-1,-0.125)"
-           id="g38">
-          <use
-             width="100%"
-             height="100%"
-             xlink:href="#img1-5"
-             transform="scale(5228.01)"
-             id="use38" />
-        </g>
-      </g>
       <text
          fill="#ffffff"
          font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
          font-weight="400"
          font-size="19px"
-         transform="translate(1000.17,311)"
+         transform="translate(1020.17,260)"
+         id="text37">AMD FSR™</text>
+      <text
+         fill="#ffffff"
+         font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
+         font-weight="400"
+         font-size="19px"
+         transform="translate(992.17,280)"
          id="text39">Composition pass</text>
       <rect
          x="957.5"
@@ -898,28 +871,19 @@
          stroke-miterlimit="8"
          fill="#ed1c24"
          id="rect39" />
-      <g
-         clip-path="url(#clip7-3)"
-         transform="matrix(1.04987e-4,0,0,1.04987e-4,970,398)"
-         id="g41">
-        <g
-           clip-path="url(#clip8)"
-           transform="matrix(1.00495,0,0,1,-1,0)"
-           id="g40">
-          <use
-             width="100%"
-             height="100%"
-             xlink:href="#img1-5"
-             transform="scale(5228.01)"
-             id="use39" />
-        </g>
-      </g>
       <text
          fill="#ffffff"
          font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
          font-weight="400"
          font-size="19px"
-         transform="translate(971.482,494)"
+         transform="translate(989.482,444)"
+         id="text37">AMD FSR™</text>
+      <text
+         fill="#ffffff"
+         font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
+         font-weight="400"
+         font-size="19px"
+         transform="translate(961.482,464)"
          id="text41">Composition pass</text>
       <path
          d="m 906,447 h 40.449 v 4 H 906 Z m 38.449,-4 12,6 -12,6 z"
@@ -939,35 +903,26 @@
          stroke-miterlimit="8"
          fill="#ed1c24"
          id="rect42" />
-      <g
-         clip-path="url(#clip9)"
-         transform="matrix(1.04987e-4,0,0,1.04987e-4,759,208)"
-         id="g43">
-        <g
-           clip-path="url(#clip10)"
-           transform="matrix(1,0,0,1.03597,-0.5,-0.125)"
-           id="g42">
-          <use
-             width="100%"
-             height="100%"
-             xlink:href="#img1-5"
-             transform="scale(5253.87)"
-             id="use42" />
-        </g>
-      </g>
+      <text
+         fill="#ffffff"
+         font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
+         font-weight="400"
+         font-size="19px"
+         transform="translate(776.92,260)"
+         id="text37">AMD FSR™</text>
       <text
          fill="#ffffff"
          font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
          font-weight="400"
          font-size="16px"
-         transform="translate(779.92,307)"
+         transform="translate(779.92,280)"
          id="text43">Interpolation</text>
       <text
          fill="#ffffff"
          font-family="'Klavika Regular', 'Klavika Regular_MSFontService', sans-serif"
          font-weight="400"
          font-size="16px"
-         transform="translate(787.253,327)"
+         transform="translate(787.253,300)"
          id="text44">Swapchain</text>
       <path
          d="m 828,341.986 0.289,40.115 -4,0.029 L 824,342.014 Z m 4.275,38.087 -5.913,12.042 -6.087,-11.956 z"

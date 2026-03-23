@@ -30,6 +30,9 @@
     <ClCompile Include="fsrapirendermodule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="debugoverlayrendermodule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="denoiserrendermodule.h">
@@ -45,6 +48,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="fsrapirendermodule.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="debugoverlayrendermodule.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -84,6 +90,9 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="shaders\shared.h">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\debug_overlay.hlsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

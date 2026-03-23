@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -91,7 +91,65 @@ public:
     }
 
     bool UseDominantLightVisibility() const { return m_EnableDominantLightVisibilityDenoising; }
+    bool IsDebugViewEnabled() const { return m_EnableDebugging && m_ShowDebugView; }
     uint32_t GetFuseMode() const { return m_DenoiserMode; }
+
+    /**
+    * @brief   Sets the denoiser mode via hotkey.
+    */
+    void SetDenoiserModeHotkey(FfxApiDenoiserMode mode)
+    {
+        if (mode != m_DenoiserMode && m_DenoiserAvailable)
+        {
+            m_DenoiserMode = mode;
+            m_NeedReInit = true;
+        }
+    }
+
+    /**
+     * @brief   Toggles dominant light visibility denoising via hotkey.
+     */
+    void ToggleDominantLightVisibilityHotkey()
+    {
+        if (m_DenoiserAvailable)
+        {
+            m_EnableDominantLightVisibilityDenoising = !m_EnableDominantLightVisibilityDenoising;
+            m_NeedReInit = true;
+        }
+    }
+
+    /**
+     * @brief   Cycles through view modes via hotkey.
+     */
+    void CycleViewModeHotkey()
+    {
+        if (m_DenoiserAvailable)
+        {
+            m_ViewMode = (m_ViewMode + 1) % static_cast<int32_t>(ViewMode::Count);
+        }
+    }
+
+    /**
+     * @brief   Cycles through RGBA channel combinations via hotkey.
+     */
+    void CycleRGBAChannelsHotkey()
+    {
+        if (m_DenoiserAvailable)
+        {
+            // Treat the 4 booleans as a 4-bit number and increment
+            // R=bit0, G=bit1, B=bit2, A=bit3
+            static uint32_t channelMask = 0b1111; // Start with all channels enabled (RGBA)
+
+            // Cycle through all 16 combinations (0b0000 to 0b1111)
+            channelMask = (channelMask + 1) & 0xF;
+
+            // Update individual channel flags
+            m_DebugShowChannelR = (channelMask & 0b0001) != 0;
+            m_DebugShowChannelG = (channelMask & 0b0010) != 0;
+            m_DebugShowChannelB = (channelMask & 0b0100) != 0;
+            m_DebugShowChannelA = (channelMask & 0b1000) != 0;
+        }
+    }
 
 private:
     bool InitDenoiserContext();
@@ -100,7 +158,10 @@ private:
     bool InitPipelineObjects();
     bool InitContent();
 
-    void ConfigureSettings();
+    void ApplyConfiguration();
+    void ApplyConfiguration(FfxApiConfigureDenoiserKey key);
+    void SetDefaultConfiguration();
+    void SetDefaultConfiguration(FfxApiConfigureDenoiserKey key);
 
     void DispatchPrePass(double deltaTime, cauldron::CommandList* pCmdList);
     void DispatchDenoiser(double deltaTime, cauldron::CommandList* pCmdList, const Vec3& dominantLightDir, const Vec3& dominantLightEmission);
@@ -109,7 +170,21 @@ private:
     // Settings
     bool m_DenoiserAvailable = false;
     bool m_EnableDebugging = false;
-    FfxApiDenoiserSettings m_DenoiserSettings = {};
+    bool m_ShowDebugView = false;
+    
+    struct DenoiserConfiguration
+    {
+        float m_CrossBilateralNormalStrength = {};
+        float m_DisocclusionThreshold = {};
+        float m_GaussianKernelRelaxation = {};
+        float m_MaxRadiance = {};
+        float m_RadianceClipStdK = {};
+        float m_StabilityBias = {};
+    };
+    DenoiserConfiguration m_DenoiserConfiguration = {};
+
+    FfxApiDenoiserDebugViewMode m_DebugViewMode = FFX_API_DENOISER_DEBUG_VIEW_MODE_OVERVIEW;
+    int32_t m_DebugViewport = 0;
 
     bool m_DebugShowChannelR = true;
     bool m_DebugShowChannelG = true;
@@ -142,6 +217,8 @@ private:
         InputDiffuseAlbedo,
         InputFusedAlbedo,
         InputSkipSignal,
+
+        Count  // Sentinel value representing total count of view modes
     };
     int32_t m_ViewMode = 0;
 
@@ -161,7 +238,6 @@ private:
     const cauldron::Texture* m_pDominantLightVisibility  = nullptr;
 
     const cauldron::Texture* m_pLinearDepth = nullptr;
-    const cauldron::Texture* m_pMotionVectors = nullptr;
     const cauldron::Texture* m_pNormals = nullptr;
     const cauldron::Texture* m_pSpecularAlbedo = nullptr;
     const cauldron::Texture* m_pDiffuseAlbedo = nullptr;
@@ -173,6 +249,7 @@ private:
     const cauldron::Texture* m_pDenoisedIndirectSpecular = nullptr;
     const cauldron::Texture* m_pDenoisedIndirectDiffuse = nullptr;
     const cauldron::Texture* m_pDenoisedDominantLightVisibility = nullptr;
+    const cauldron::Texture* m_pDebugView = nullptr;
 
     cauldron::SamplerDesc m_BilinearSampler;
 
@@ -182,17 +259,18 @@ private:
     struct PrePassConstants
     {
         float clipToCamera[16];
-        float clipToWorld[16];
-        float prevWorldToCamera[16];
         float renderWidth;
         float renderHeight;
-        float cameraNear;
-        float cameraFar;
+        float padding[2];
     };
 
     cauldron::RootSignature* m_pComposeRootSignature = nullptr;
     cauldron::PipelineObject* m_pComposePipeline = nullptr;
-    cauldron::ParameterSet* m_pComposeParameterSet = nullptr;
+
+    static constexpr uint32_t m_NumComposeParameterSets = 3;
+    cauldron::ParameterSet* m_pComposeParameterSets[m_NumComposeParameterSets];
+    cauldron::ParameterSet* m_pCurrentComposeParameterSet = nullptr;
+    uint32_t m_pCurrentComposeParameterSetIndex = 0;
     struct ComposeConstants
     {
         Mat4 clipToWorld;

@@ -1,6 +1,6 @@
-<!-- @page page_techniques_super-resolution-upscaler AMD FSR™ Super Resolution 4.0.3 Upscaler -->
+<!-- @page page_techniques_super-resolution-upscaler AMD FSR™ Super Resolution 4.1.0 Upscaler -->
 
-<h1>AMD FSR™ Upscaling 4.0.3</h1>
+<h1>AMD FSR™ Upscaling 4.1.0</h1>
 
 ![Screenshot](media/super-resolution-ml/fsr4-sample.jpg "A screenshot showcasing the final output of the effect")
 
@@ -326,6 +326,7 @@ FSR4 requires an AMD 9000 series GPU or later.
 | ---------------|-------------------|
 | **4.0.2**      | 2025-08-20        |
 | **4.0.3**      | 2025-12-10        |
+| **4.1.0**      | 2026-03-18        |
 
 Refer to changelog for more detail on versions.
 

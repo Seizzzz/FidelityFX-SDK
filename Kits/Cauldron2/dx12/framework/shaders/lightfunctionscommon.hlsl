@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -165,7 +165,7 @@ SplitShadingResult GetPointShade(float3 pointToLight, MaterialInfo materialInfo,
     AngularInfo angularInfo = GetAngularInfo(pointToLight, normal, view);
 
     SplitShadingResult result = (SplitShadingResult)0;
-    if (angularInfo.NdotL > 0.0 || angularInfo.NdotV > 0.0)
+    if (angularInfo.NdotL > 0.0 && angularInfo.NdotV > 0.0)
     {
         // Calculate the shading terms for the microfacet specular shading model
         float3 F = SpecularReflection_Schlick(materialInfo, angularInfo);

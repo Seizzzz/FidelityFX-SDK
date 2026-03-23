@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -88,6 +88,7 @@ void Sample::DoSampleUpdates(double deltaTime)
 {
     const InputState& inputState = GetInputManager()->GetInputState();
     FSRApiRenderModule* pFSR = dynamic_cast<FSRApiRenderModule*>(GetFramework()->GetRenderModule("FSRApiRenderModule"));
+    
     if (pFSR)
     {
         // Upscale method hotkeys
@@ -95,27 +96,65 @@ void Sample::DoSampleUpdates(double deltaTime)
         constexpr int32_t kUpscalerFSRAPI = 1;
 
         // Scale preset hotkeys
+        constexpr int32_t kScalePresetNativeAA = 0;
         constexpr int32_t kScalePresetQuality = 1;
         constexpr int32_t kScalePresetBalanced = 2;
         constexpr int32_t kScalePresetPerformance = 3;
         constexpr int32_t kScalePresetUltraPerformance = 4;
+        constexpr int32_t kScalePresetCount = 5;
 
-        if (inputState.GetKeyUpState(Key_F9))
-            pFSR->SetUpscaleMethodHotkey(kUpscalerNative);
-        if (inputState.GetKeyUpState(Key_F10))
-            pFSR->SetUpscaleMethodHotkey(kUpscalerFSRAPI);
+        // Track FSR state - initialize to match the actual starting state from fsrapirendermodule.h
+        static bool fsrEnabled = true;
+        static int32_t currentPreset = kScalePresetQuality;
+
+        // F5: Toggle FSR method on/off
+        // When enabling: set to FSR method with Native AA preset
+        // When disabling: set to Native method
         if (inputState.GetKeyUpState(Key_F5))
-            pFSR->SetScalePresetHotkey(kScalePresetQuality);
+        {
+            fsrEnabled = !fsrEnabled;
+            if (fsrEnabled)
+            {
+                // Enable FSR method first, then set to Native AA preset
+                pFSR->SetUpscaleMethodHotkey(kUpscalerFSRAPI);
+                currentPreset = kScalePresetNativeAA;
+                pFSR->SetScalePresetHotkey(currentPreset);
+            }
+            else
+            {
+                // Disable FSR, switch to Native method
+                pFSR->SetUpscaleMethodHotkey(kUpscalerNative);
+            }
+        }
+
+        // F6: Cycle through scale presets
+        // If Native method is active: enable FSR method and jump to Quality preset
+        // If FSR method is active: cycle through all presets (Native AA -> Quality -> Balanced -> Performance -> Ultra Performance -> Native AA)
         if (inputState.GetKeyUpState(Key_F6))
-            pFSR->SetScalePresetHotkey(kScalePresetBalanced);
+        {
+            if (!fsrEnabled)
+            {
+                // Currently using Native method, enable FSR first then jump to Quality preset
+                pFSR->SetUpscaleMethodHotkey(kUpscalerFSRAPI);
+                fsrEnabled = true;
+                currentPreset = kScalePresetQuality;
+                pFSR->SetScalePresetHotkey(currentPreset);
+            }
+            else
+            {
+                // FSR is already enabled, cycle to next preset
+                currentPreset = (currentPreset + 1) % kScalePresetCount;
+                pFSR->SetScalePresetHotkey(currentPreset);
+            }
+        }
+
+        // F7: Toggle Frame Interpolation on/off
         if (inputState.GetKeyUpState(Key_F7))
-            pFSR->SetScalePresetHotkey(kScalePresetPerformance);
-        if (inputState.GetKeyUpState(Key_F8))
-            pFSR->SetScalePresetHotkey(kScalePresetUltraPerformance);
-        if (inputState.GetKeyUpState(Key_F11))
-            pFSR->SetFrameInterpolationHotkey(true);
-        if (inputState.GetKeyUpState(Key_F12))
-            pFSR->SetFrameInterpolationHotkey(false);
+        {
+            static bool frameInterpolationEnabled = true;  // Match initial state from fsrapirendermodule.h
+            frameInterpolationEnabled = !frameInterpolationEnabled;
+            pFSR->SetFrameInterpolationHotkey(frameInterpolationEnabled);
+        }
     }
 }
 

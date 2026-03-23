@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -24,11 +24,12 @@
 
 #include "../misc/helpers.h"
 #include "../misc/assert.h"
+#include "../misc/math.h"
 
 #include <functional>
 #include <map>
+#include <optional>
 #include <vector>
-
 
 namespace cauldron
 {
@@ -204,6 +205,15 @@ namespace cauldron
          * @brief   Build the UI in each UI backend.
         */
         virtual void BuildUI() override;
+
+        void SetColor(Vec4 color)
+        {
+            m_Color = color;
+        }
+
+    private:
+
+        std::optional< Vec4 > m_Color = {};
     };
 
     /**

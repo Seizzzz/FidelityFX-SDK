@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -231,27 +231,27 @@ namespace cauldron
         void RegisterDeviceRemovedCallback(DeviceRemovedCallback callback, void* customData) { m_DeviceRemovedCallback = callback; m_DeviceRemovedCustomData = customData; }
 
         /**
-         * @brief   Gets whether Anti-Lag 2.0 is available on the system.
+         * @brief   Gets whether FSR Latency Reduction 2.0 is available on the system.
          */
         bool GetAntiLag2FeatureSupported() const { return m_AntiLag2Supported; }
 
         /**
-         * @brief   Gets the current state of Anti-Lag 2.0.
+         * @brief   Gets the current state of FSR Latency Reduction 2.0.
          */
         bool GetAntiLag2Enabled() const { return m_AntiLag2Enabled; }
 
         /**
-         * @brief   Sets the current state of Anti-Lag 2.0.
+         * @brief   Sets the current state of FSR Latency Reduction 2.0.
          */
         void SetAntiLag2Enabled(bool enable) { m_AntiLag2Enabled = enable; }
 
         /**
-         * @brief   Sets the framerate limiter for Anti-Lag 2.0. Zero disables the limiter.
+         * @brief   Sets the framerate limiter for FSR Latency Reduction 2.0. Zero disables the limiter.
          */
         void SetAntiLag2FramerateLimiter(uint32_t maxFPS) { m_AntiLag2FramerateLimiter = maxFPS; }
 
         /**
-         * @brief   Update Anti-Lag 2.0 state.
+         * @brief   Update FSR Latency Reduction 2.0 state.
          */
         virtual void UpdateAntiLag2() = 0;
 

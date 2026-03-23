@@ -1,6 +1,6 @@
 // This file is part of the FidelityFX SDK.
 //
-// Copyright (C) 2025 Advanced Micro Devices, Inc.
+// Copyright (C) 2026 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -156,7 +156,7 @@ FFX_API FfxErrorCode ffxLoadPixDll(const wchar_t* pixDllPath);
 /// Toggles debugging.
 /// 
 /// @param [in]  backendInterface                    A pointer to the backend interface.
-/// @param [in]  effect                              The effect the context is being created for.
+/// @param [in]  effectContextId                     The context space to be used for the effect in question.
 /// @param [in]  flag                                Flag indicating whether debugging should be enabled.
 /// 
 /// @ingroup DX12Backend
@@ -390,17 +390,17 @@ FFX_API FfxErrorCode ffxFrameInterpolationSwapchainGetGpuMemoryUsageDX12(FfxSwap
 /// FFX_ERROR_INVALID_ARGUMENT          Could not query the interface for the frame interpolation swap chain.
 ///
 /// @ingroup DX12FrameInterpolation
-FFX_API FfxErrorCode ffxFrameInterpolationSwapchainGetGpuMemoryUsageDX12V2(FfxDevice device, FfxApiDimensions2D* displaySize, FfxApiSurfaceFormat backbufferFormat, uint32_t backBufferCount, FfxApiDimensions2D* uiResourceSize, FfxApiSurfaceFormat uiResourceFormat, uint32_t flags, FfxApiEffectMemoryUsage* vramUsage);
+FFX_API FfxErrorCode ffxFrameInterpolationSwapchainGetGpuMemoryUsageDX12V2(FfxDevice device, FfxApiDimensions2D* displaySize, FfxApiSurfaceFormat backbufferFormat, uint32_t backbufferCount, FfxApiDimensions2D* uiResourceSize, FfxApiSurfaceFormat uiResourceFormat, uint32_t flags, FfxApiEffectMemoryUsage* vramUsage);
 
 
 struct FfxFrameInterpolationContext;
 typedef FfxErrorCode (*FfxCreateFiSwapchain)(FfxFrameInterpolationContext* fiContext, FfxDevice device, FfxCommandQueue gameQueue, FfxSwapchain& swapchain);
 typedef FfxErrorCode (*FfxReleaseFiSwapchain)(FfxFrameInterpolationContext* fiContext, FfxSwapchain* outRealSwapchain);
 
-/// Query estimated Gpu memory size of a resource description
+/// Query estimated GPU memory size of a resource description
 ///
 /// @param [in] device                  The <c><i>FfxDevice</i></c>
-/// @param [in] resourceDesc            The <c><i>FfxCreateResourceDescription</i></c>
+/// @param [in] createResourceDescription The <c><i>FfxCreateResourceDescription</i></c>
 /// @param [out] sizeInBytes            The <c><i>uint64_t</i></c>
 ///
 /// @retval
@@ -409,7 +409,7 @@ typedef FfxErrorCode (*FfxReleaseFiSwapchain)(FfxFrameInterpolationContext* fiCo
 /// FFX_ERROR_INVALID_ARGUMENT          Could not query <c><i>ID3D12Device</i></c> from <c><i>FfxDevice</i></c> to call 
 ///
 /// @ingroup DX12Backend
-FFX_API FfxErrorCode ffxGetResourceSizeFromDescriptionDX12(FfxDevice device, const FfxCreateResourceDescription* createResourceDescription, uint64_t* sizeInBytes);
+FFX_API FfxErrorCode ffxGetResourceSizeFromDescriptionDX12(FfxDevice device, const FfxCreateResourceDescription* createResourceDescription, uint64_t* sizeInBytes, uint64_t* alignment = nullptr);
 
 /// Query The ABI version used by the swapchain
 ///
