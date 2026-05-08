@@ -1,14 +1,15 @@
 <!-- @page page_running-samples_index Running Samples -->
 
-<h1>Running the FidelityFX SDK Samples</h1>
+<h1>Running the FSR™ SDK Samples</h1>
 
 <h2>Content download</h2>
 
-The SDK samples are configured to load scenes from pre-downloaded content. Please see the [media delivery tool](../tools/media-delivery.md)
+The FSR™ SDK samples are configured to load scenes from pre-downloaded content. Please see the [media delivery tool](../tools/media-delivery.md)
 
 <h2>Configuration files</h2>
 
-The SDK samples (and FidelityFX Cauldron Framework in general) operate via runtime setup driven by various JSON configuration files.
+The FSR™ SDK samples (and Cauldron Framework in general) operate via runtime setup driven by various JSON configuration files.
+*The FSR™ Radiance Caching Preview is run from a self contained application framework and not Cauldron-based.
 
 There is a hierarchy to how the configuration files are loaded:
 
@@ -97,7 +98,7 @@ The following is a list of configuration groups and options that can be overload
 
   **DebugOptions**
   
-  Debug options are designed to be used by AMD engineers during the development of FidelityFX features, but can also be useful when investigating how the sample runs or when experimenting.
+  Debug options are designed to be used by AMD engineers during the development of FSR features, but can also be useful when investigating how the sample runs or when experimenting.
   
   `DevelopmentMode` will automatically enable debug shaders, CPU validation, and DirectX memory leak detection (when in DX12 configurations).
   
@@ -116,7 +117,7 @@ The following is a list of configuration groups and options that can be overload
 
   Render resources is a list of resources to be created, or resource aliases to be created at framework initialization time. They are typically defined by render modules that have implicit resource needs.  They are defined by providing the resource name as an object which contains a Format, and other optional flags (e.g. `"RenderResolution": true` will create the resource at render resolution instead of display resolution if upscaling is present).
   
-  Resource aliases add additional names that can be used to query resources from the [`DynamicResourcePool`](../../framework/cauldron/framework/src/render/dynamicresourcepool.cpp) at run time.
+  Resource aliases add additional names that can be used to query resources from the [`DynamicResourcePool`](../../Kits/Cauldron2/dx12/framework/render/dynamicresourcepool.cpp) at run time.
   
   Example:
 
@@ -145,7 +146,7 @@ The following is a list of configuration groups and options that can be overload
   
   **RenderModuleOverrides**
   
-  Used to override data for render module initialization. Define an entry for each render module you wish to override. Example: Overiding [`SkyDomeRenderModule`](../../framework/rendermodules/skydome/skydomerendermodule.h)'s procedural generation setting:
+  Used to override data for render module initialization. Define an entry for each render module you wish to override. Example: Overiding [`SkyDomeRenderModule`](../../Kits/Cauldron2/dx12/rendermodules/skydome/skydomerendermodule.h)'s procedural generation setting:
   
   ```yaml
   "RenderModuleOverrides": {
@@ -159,7 +160,7 @@ The following is a list of configuration groups and options that can be overload
   
   Content blocks are used in sample configuration files to dictate the scene, camera, particles, etc. that should be loaded at runtime when running the sample. These values can be overridden from the command line interface (see below).
   
-  `ParticleSpawners`: This is a list of particle spawners to queue for loading at runtime. For an overview of how particles work in FidelityFX Cauldron Framework, please see the reference documentation on GPUOpen.
+  `ParticleSpawners`: This is a list of particle spawners to queue for loading at runtime. For an overview of how particles work in Cauldron Framework, please see the reference documentation on GPUOpen.
   
   `Scenes`: This is a list of glTF files to queue for loading at runtime. Can contain one or more file paths.
   
@@ -179,7 +180,7 @@ The following is a list of configuration groups and options that can be overload
 	"ParticleSpawners": [
 	  {
 		"Name": "FSRSpawner",
-		"AtlasPath": "media/particles/atlas.dds",
+		"AtlasPath": "media/cauldronmedia/particles/atlas.dds",
 		"Position": [ 0.0, 0.0, 0.0 ],
 		"Sort": true,
 		"Emitters": [
@@ -204,12 +205,12 @@ The following is a list of configuration groups and options that can be overload
 	  }
 	],
 	"Scenes": [
-	  "../media/Chess/scene.gltf"
+	  "../media/cauldronmedia/Chess/scene.gltf"
 	],
 	"Camera": "Camera_1",
-    "DiffuseIBL": "../media/IBL/mud_road_puresky_Diffuse.dds",
-    "SpecularIBL": "../media/IBL/mud_road_puresky_Specular.dds",
-	"SkyMap": "../media/IBL/mud_road_puresky_Specular.dds",
+    "DiffuseIBL": "../media/cauldronmedia/IBL/mud_road_puresky_Diffuse.dds",
+    "SpecularIBL": "../media/cauldronmedia/IBL/mud_road_puresky_Specular.dds",
+	"SkyMap": "../media/cauldronmedia/IBL/mud_road_puresky_Specular.dds",
     "SceneExposure": 1.355
   }
   ```
@@ -249,7 +250,7 @@ The following are the currently supported command line overrides:
 
   **-devmode**
   
-  Launches the sample with CPU validation enabled, memory leak checks, and building FidelityFX Cauldron Framework shaders with debug information. 
+  Launches the sample with CPU validation enabled, memory leak checks, and building Cauldron Framework shaders with debug information. 
 
   **-cpulimiter** \[TARGETFRAMERATE\]
   
@@ -342,7 +343,7 @@ The following are the currently supported command line overrides:
 
 <h3>User interface</h3>
 
-FidelityFX Cauldron Framework offers a dynamic UI system built for the sample being run, defined by which render modules are present. Each render module is responsible for its own UI. For individual sample-specific UI elements, please see the corresponding sample documentation for the effect in question.
+Cauldron Framework offers a dynamic UI system built for the sample being run, defined by which render modules are present. Each render module is responsible for its own UI. For individual sample-specific UI elements, please see the corresponding sample documentation for the effect in question.
 
 Depending on which of Cauldron's render modules are active in a sample, the following UI elements may be present
 
